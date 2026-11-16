@@ -1,7 +1,7 @@
 import type { Register, ThemeSetArgs } from 'claude-code'
 
 import { makeColors } from './make-colors.js'
-import { momentAt, scene } from './scene'
+import { momentAt, scene, type Season } from './scene'
 
 // A dim room lit by the fire. Surfaces are warm dark browns and text is
 // candlelight cream. The accent is candle gold, with holly green, berry red and
@@ -29,6 +29,15 @@ const LOOK: ThemeSetArgs = {
   colors: theme,
   // A light veil so the pixels stay sharp behind the panels.
   backdrop: { scene: 'pixel-hearth', glass: { blur: 4, opacity: 0.72 } },
+}
+
+const ALT: Record<Season, string> = {
+  autumn:
+    'A pixel-art living room at Thanksgiving: a fire with pumpkins on the mantel, a rocking chair and a sleeping cat, corn stalks and a hay bale, and autumn trees through the window',
+  christmas:
+    'A pixel-art living room at Christmas: a fire with stockings, a rocking chair and a sleeping cat, a tree with presents, and a snowy window',
+  winter:
+    'A pixel-art living room in winter: a fire with mittens drying on the mantel, a rocking chair and a sleeping cat, a sled and ice skates, and a snowy window',
 }
 
 export const register: Register = on => {
@@ -61,11 +70,7 @@ export const register: Register = on => {
     return (
       <Svg
         source={scene(moment)}
-        alt={
-          moment.autumn
-            ? 'A pixel-art living room at Thanksgiving: a fire with pumpkins on the mantel, a rocking chair and a sleeping cat, corn stalks and a hay bale, and autumn trees through the window'
-            : 'A pixel-art living room at Christmas: a fire with stockings, a rocking chair and a sleeping cat, a tree with presents, and a snowy window'
-        }
+        alt={ALT[moment.season]}
         isInteractive
       />
     )
