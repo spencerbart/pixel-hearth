@@ -1,0 +1,5 @@
+{
+  "name": "pixel-hearth",
+  "owner": { "name": "spencerbart" },
+  "plugins": [{ "name": "pixel-hearth", "source": "./" }]
+}
