@@ -119,10 +119,9 @@ const MITTEN = ['..wwww', '..RRRR', 'R.RwRw', 'RRRRRR', '.RRRRR', '..RRRR', '..R
 
 const STOCKING = ['wwwww..', 'wwwww..', 'RRRRR..', 'RRRRR..', 'RRRRR..', 'RRRRRR.', 'RRRRRRR', '.RRRRRR', '..RRRR.']
 
-// The fireplace, 40 wide and 34 tall. At Christmas a garland and stockings
-// hang from the mantel. In autumn a garland of leaves hangs there instead, and
-// in winter a pair of mittens hangs drying on the bare mantel.
-const fireplace = (season: Season) => {
+// The fireplace, 40 wide and 34 tall. The season dresses the front edge of the
+// mantel and hangs things from it.
+const fireplace = (dress: Dress) => {
   const g = grid(40, 34)
 
   for (let y = 4; y < 30; y++) {
@@ -138,11 +137,7 @@ const fireplace = (season: Season) => {
     g.set(x, 0, 'W')
     g.set(x, 1, 'M')
     g.set(x, 2, 'M')
-    g.set(
-      x,
-      3,
-      season === 'autumn' ? (AUTUMN_LEAVES[Math.floor(x / 2) % 4] ?? 'o') : season === 'winter' ? 'M' : x % 4 < 2 ? 'G' : 'g',
-    )
+    g.set(x, 3, dress.garland(x))
   }
   for (let y = 13; y < 30; y++) {
     const inset = y === 13 ? 3 : y === 14 ? 1 : 0
@@ -168,29 +163,9 @@ const fireplace = (season: Season) => {
   const hang = (rows: string[], x0: number) =>
     rows.forEach((row, y) => [...row].forEach((c, x) => c !== '.' && g.set(x0 + x, 4 + y, c)))
 
-  if (season === 'winter') {
-    hang(MITTEN, 5)
-    hang(
-      MITTEN.map(row => [...row].reverse().join('').replace(/R/g, 'U')),
-      29,
-    )
-
-    return g.rows()
+  for (const [rows, x0] of dress.hung) {
+    hang(rows, x0)
   }
-  if (season === 'autumn') {
-    // A few leaves trail down from the garland.
-    hang(['o', '.', 'R'], 7)
-    hang(['.', 'Q'], 15)
-    hang(['t', '.', '.', 'o'], 24)
-    hang(['Q', '.', 'R'], 33)
-
-    return g.rows()
-  }
-  hang(STOCKING, 5)
-  hang(
-    STOCKING.map(row => [...row].reverse().join('').replace(/R/g, 'P')),
-    28,
-  )
 
   return g.rows()
 }
@@ -306,48 +281,91 @@ const SNOW_GLOBE = pixels(['.XXXXX.', 'XwnNwwX', 'XwNNNwX', 'XnNNNNX', '.XwLwX.'
 // Split logs stacked on the hearth, ready for the fire.
 const WOODPILE = pixels(['...LlL...', '.LlLLlL..', 'LlLLlLLlL'], 30, 27)
 
-const hearth = (moment: Moment) => `
+// The fireplace with its fire, candles, clock and cocoa, which stay all year,
+// and what the season puts on and beside it.
+const hearth = (dress: Dress) => `
   <ellipse cx="20" cy="22" rx="70" ry="48" fill="url(#glow)"/>
-  ${pixels(fireplace(moment.season))}
+  ${pixels(fireplace(dress))}
   <ellipse cx="20" cy="24" rx="10" ry="8" fill="url(#firebox)"/>
   ${pixels(FLAME, 13, 17)}
   ${pixels(['Y'], 16, 15)}${pixels(['O'], 23, 14)}${pixels(['r'], 19, 13)}
-  ${
-    moment.season === 'autumn'
-      ? `${pixels(BIG_PUMPKIN, 12, -6)}${pixels(SMALL_PUMPKIN, 23, -4)}${pixels(GOURD, 1, -4)}`
-      : moment.season === 'winter'
-        ? SNOW_GLOBE
-        : GARLAND_BULBS
-  }
+  ${dress.mantel}
   ${pixels(['w', 'w', 'w', 'w'], 5, -4)}${pixels(['ww', 'ww', 'ww', 'ww', 'ww', 'ww'], 8, -6)}
   ${pixels(['ww', 'ww', 'ww', 'ww', 'ww'], 31, -5)}
   ${CANDLE_FLAMES}
   ${pixels(WALL_CLOCK, 14, -47)}
   ${COCOA}
-  ${moment.season === 'autumn' ? PIE : moment.season === 'winter' ? WOODPILE : forSanta(moment.afterChristmas)}`
+  ${dress.hearthside}`
 
-// A rocking chair facing the fire, a blanket over its back, 14 wide and 17
-// tall. The ball of yarn beside it trails a thread to the cat.
-const ROCKER = pixels([
-  '..WM..........',
-  '..WM..........',
-  '..WM..........',
-  '..WM..........',
-  '..WMPRPR......',
-  '..WMRPRP......',
-  '..WMPRPRMMMMM.',
-  '..WMRPRP...M..',
-  '..WMPRPR...M..',
-  '..WWWWWWWWWWW.',
-  '..MMMMMMMMMMM.',
-  '...RP.M....M..',
-  '...PR.M....M..',
-  '......M....M..',
-  '......M....M..',
-  '.L..........L.',
-  '..LLLLLLLLLL..',
-])
-const YARN = pixels(['.Vv..', 'VVVV.', '.VV.V', '....V'], 0, 0)
+// A rocking chair seen from the side, facing the fire on its right, 20 wide
+// and 26 tall. Its back leans away from the fire, a plaid blanket hangs over
+// it, and a red cushion sits on the seat. The fire lights the edges that face
+// it.
+const ROCKER = (() => {
+  const g = grid(20, 26)
+
+  // The runner, curving up at both ends.
+  for (let x = 0; x < 20; x++) {
+    const t = (x - 9.5) / 9.5
+    const y = 23 - Math.round(2 * t * t)
+
+    g.set(x, y, x > 9 ? 'H' : 'W')
+    g.set(x, y + 1, 'M')
+  }
+  // Legs from the seat to the runner.
+  for (let y = 18; y < 23; y++) {
+    g.set(4, y, 'M')
+    g.set(15, y, 'M')
+    g.set(16, y, 'H')
+  }
+  // The seat, its edge lit, and a cushion on it.
+  for (let x = 3; x < 18; x++) {
+    g.set(x, 16, x === 17 ? 'H' : 'W')
+    g.set(x, 17, 'L')
+  }
+  for (let x = 5; x < 16; x++) {
+    g.set(x, 15, 'R')
+    g.set(x, 14, x > 6 && x < 15 ? 's' : '.')
+  }
+  // The back post, leaning away from the fire, and the crest rail on top.
+  for (let y = 0; y < 16; y++) {
+    const x = 1 + Math.round((y * 3) / 15)
+
+    g.set(x, y, 'M')
+    g.set(x + 1, y, 'W')
+  }
+  g.set(0, 0, 'M')
+  g.set(3, 0, 'W')
+  // The arm, from the back to a turned post at the front of the seat.
+  for (let x = 4; x < 18; x++) {
+    g.set(x, 9, x > 12 ? 'H' : 'W')
+    g.set(x, 10, 'M')
+  }
+  for (let y = 11; y < 16; y++) {
+    g.set(16, y, 'M')
+    g.set(17, y, 'H')
+  }
+  // A plaid blanket thrown over the back: it hangs down behind the chair and a
+  // little way down the front, with a fringe at the bottom.
+  for (let y = 1; y < 13; y++) {
+    const post = 1 + Math.round((y * 3) / 15)
+    const right = y < 7 ? post + 4 : post + 2
+
+    for (let x = 0; x <= right; x++) {
+      const stripe = x === 2 || x === 3 || y % 4 === 0
+
+      g.set(x, y, y === 1 || x === right ? 's' : stripe ? 'J' : 'E')
+    }
+  }
+  for (let x = 0; x < 6; x += 2) {
+    g.set(x, 13, 'u')
+  }
+
+  return pixels(g.rows())
+})()
+
+// A ball of purple yarn with a loose end trailing toward the cat.
+const YARN = pixels(['.Vv..', 'VVVV.', 'VVVv.', '.VV.V', '....V'], 0, 0)
 
 // A mouse peeking out of its hole in the wall, 9 wide and 6 tall.
 const MOUSE_HOLE = pixels(['..MMMM...', '.MKKKKM..', 'MKKKKKp..', 'MKKKKZZZ.', 'MKKKZZKZp', 'MKKKKZZ..'])
@@ -434,24 +452,37 @@ const SLEIGH = pixels(['X.X....X.', '.XX...XX.', 'XXXXXXXXX', 'X..X..X.X'], 23, 
 // A paper snowflake taped to the glass.
 const PAPER_SNOWFLAKES = pixels(['.qq..', 'w.w.w', '.www.', 'ww.ww', '.www.', 'w.w.w'], 4, 4)
 
-// By day the sky is pale and the sun glows behind the pines. By night the
-// moon is up, with the sleigh crossing below it.
-const snowyWindow = (daytime: boolean, christmas: boolean) => `
+// The snowy view: pines and a snowman in a drift, with snow falling. At
+// Christmas, Santa's sleigh crosses below the moon at night.
+const snowyView = (sleigh: boolean) => (daytime: boolean) => `
+    ${!daytime && sleigh ? SLEIGH : ''}
+    ${pixels(PINES, 2, PANES_BOTTOM - 16)}
+    ${SNOWMAN}
+    ${pixels(DRIFT, 2, PANES_BOTTOM - 3)}
+    ${FLAKES}`
+
+const CHRISTMAS_WREATH = pixels(
+  ['..gGg..', '.GR.GG.', 'gG...Gg', 'G.....G', 'gG...Rg', '.GG.GG.', '..RwR..'],
+  WINDOW_W / 2 - 4,
+  PANES_BOTTOM / 2 - 2,
+)
+
+// The window: the sky, then the season's view and what is taped to the glass,
+// then the frame and anything hung on it. By day the sky is pale and the sun
+// glows low. By night the moon is up.
+const windowWith = (dress: Dress, daytime: boolean) => `
   <g clip-path="url(#panes)">
     <rect x="2" y="2" width="${PANES_W}" height="${PANES_BOTTOM - 1}" fill="url(#${daytime ? 'day' : 'night'})"/>
     ${
       daytime
         ? '<circle cx="31" cy="10" r="12" fill="url(#sunlight)"/>'
-        : `<circle cx="32" cy="7" r="9" fill="url(#moonlight)"/>${pixels(['.yyyy.', 'yyyyyy', 'yyyyyy', 'yyyyyy', 'yyyyyy', '.yyyy.'], 29, 4)}${christmas ? SLEIGH : ''}`
+        : `<circle cx="32" cy="7" r="9" fill="url(#moonlight)"/>${pixels(['.yyyy.', 'yyyyyy', 'yyyyyy', 'yyyyyy', 'yyyyyy', '.yyyy.'], 29, 4)}`
     }
-    ${pixels(PINES, 2, PANES_BOTTOM - 16)}
-    ${SNOWMAN}
-    ${pixels(DRIFT, 2, PANES_BOTTOM - 3)}
-    ${FLAKES}
-    ${PAPER_SNOWFLAKES}
+    ${dress.view(daytime)}
+    ${dress.onGlass}
   </g>
-  ${pixels(windowFrame(true))}
-  ${christmas ? pixels(['..gGg..', '.GR.GG.', 'gG...Gg', 'G.....G', 'gG...Rg', '.GG.GG.', '..RwR..'], WINDOW_W / 2 - 4, PANES_BOTTOM / 2 - 2) : ''}`
+  ${pixels(windowFrame(dress.snowySill))}
+  ${dress.wreath}`
 
 // The autumn view: round trees in reds and golds over grass, with leaves
 // falling past the glass. By night the colors darken under the moon.
@@ -519,22 +550,11 @@ const AUTUMN_WREATH = ['..gGg..', '.GR.GG.', 'gG...Gg', 'G.....G', 'gG...Rg', '.
   row.replace(/[gGRw]/g, c => ({ g: 'R', G: 'o', R: 'Q', w: 't' })[c] ?? c),
 )
 
-const autumnWindow = (daytime: boolean) => `
-  <g clip-path="url(#panes)">
-    <rect x="2" y="2" width="${PANES_W}" height="${PANES_BOTTOM - 1}" fill="url(#${daytime ? 'day' : 'night'})"/>
-    ${
-      daytime
-        ? '<circle cx="31" cy="10" r="12" fill="url(#sunlight)"/>'
-        : `<circle cx="32" cy="7" r="9" fill="url(#moonlight)"/>${pixels(['.yyyy.', 'yyyyyy', 'yyyyyy', 'yyyyyy', 'yyyyyy', '.yyyy.'], 29, 4)}`
-    }
+const autumnView = (daytime: boolean) => `
     ${geese(daytime)}
     ${pixels(autumnTrees(daytime), 2, PANES_BOTTOM - 22)}
     ${pixels(AUTUMN_GROUND, 2, PANES_BOTTOM - 3)}
-    ${FALLING_LEAVES(daytime)}
-    ${HAND_TURKEY}
-  </g>
-  ${pixels(windowFrame(false))}
-  ${pixels(AUTUMN_WREATH, WINDOW_W / 2 - 4, PANES_BOTTOM / 2 - 2)}`
+    ${FALLING_LEAVES(daytime)}`
 
 // Corn stalks tied in a bundle behind a hay bale, with pumpkins and a gourd
 // on the bale and more pumpkins on the floor. It stands where the Christmas
@@ -747,13 +767,24 @@ const christmasTree = (opened: boolean) => `
   ${ORNAMENTS}
   ${pixels(['..Q..', '.QQQ.', 'QQyQQ', '.QQQ.', '.Q.Q.'], 12, 0)}`
 
-// A cat asleep by the fire, 12 wide and 6 tall.
-const CAT = pixels(['.c.c........', 'cCcC........', 'CkCCCcCcCc..', 'CCCCCCCCCCCc', '.CCCCCCCCCCC', '..cccccccccC'])
+// An orange tabby curled up asleep by the fire, 16 wide and 8 tall: ears up,
+// eyes shut, a white chin, stripes along its back and its tail wrapped round.
+const CAT = pixels([
+  '.c..c...........',
+  '.CccC...cccc....',
+  'CkCCkC.cCCcCCc..',
+  'CCCCCCcCCCCCCCc.',
+  'pwCCCCCCcCCCcCCc',
+  '.wwCCCCCCCCCCCCc',
+  '..ccCCCCCCCCCcc.',
+  '...ccccccccccc..',
+])
 
 // The room around everything. The wall has wainscot panels below a chair rail
 // and a baseboard, and the floor recedes: each row of boards is shorter and its
 // planks shorter the farther back it is, the way a floor looks in perspective.
-// Each piece is drawn far to the left so it spans any width of window.
+// Above the chair rail is a striped wallpaper with a small diamond. Each piece
+// is drawn far to the left and far up so it fills any shape of window.
 const FLOOR_ROWS: [number, number, number, number][] = [
   // top, height, plank length, where the first seam falls
   [126, 1, 9, 3],
@@ -767,6 +798,10 @@ const FLOOR_ROWS: [number, number, number, number][] = [
 const FLOOR_TONES = ['#2a1810', '#301c13']
 
 const roomDefs = () => `
+  <pattern id="wall" x="1" y="2" width="6" height="8" patternUnits="userSpaceOnUse">
+    <rect width="6" height="8" fill="#1a1210"/><rect width="3" height="8" fill="#1c1311"/>
+    <rect x="4" y="3" width="1" height="3" fill="#201612"/><rect x="3" y="4" width="3" height="1" fill="#201612"/>
+  </pattern>
   <pattern id="panel" y="100" width="24" height="21" patternUnits="userSpaceOnUse">
     <rect width="24" height="21" fill="#1b120e"/>
     <rect x="3" y="3" width="18" height="1" fill="#130b08"/><rect x="3" y="3" width="1" height="15" fill="#130b08"/>
@@ -790,6 +825,7 @@ const ROOM_LEFT = -1600
 const ROOM_WIDTH = 1820
 
 const room = (withPanels: boolean) => `
+  <rect x="${ROOM_LEFT}" y="-700" width="${ROOM_WIDTH}" height="${withPanels ? 798 : 821}" fill="url(#wall)"/>
   ${withPanels ? `<rect x="${ROOM_LEFT}" y="100" width="${ROOM_WIDTH}" height="21" fill="url(#panel)"/>
   <rect x="${ROOM_LEFT}" y="98" width="${ROOM_WIDTH}" height="1" fill="#3a2417"/>
   <rect x="${ROOM_LEFT}" y="99" width="${ROOM_WIDTH}" height="1" fill="#24160f"/>` : ''}
@@ -801,101 +837,113 @@ const room = (withPanels: boolean) => `
   ).join('')}
   <rect x="${ROOM_LEFT}" y="142" width="${ROOM_WIDTH}" height="320" fill="url(#boardsNear)"/>`
 
-// A rag rug in front of the fire, wider toward the viewer.
-const RUG = (() => {
+// A rag rug in front of the fire, wider toward the viewer: a green border
+// round a red field with two cream stripes, and a fringe at the near edge.
+const rug = (cx: number, top: number, half: number) => {
   let out = ''
 
   for (let row = 0; row < 10; row++) {
-    const half = 22 + 2 * row
-    const left = 150 - half
-    const width = 2 * half
+    const left = cx - half - 2 * row
+    const width = 2 * (half + 2 * row)
 
-    out += `<rect x="${left}" y="${127 + row}" width="${width}" height="1" fill="#2c4a33"/>`
+    out += `<rect x="${left}" y="${top + row}" width="${width}" height="1" fill="#2c4a33"/>`
 
     if (row > 0 && row < 9) {
       const fill = row === 3 || row === 6 ? '#b39c7c' : '#7a2a22'
 
-      out += `<rect x="${left + 2}" y="${127 + row}" width="${width - 4}" height="1" fill="${fill}"/>`
+      out += `<rect x="${left + 2}" y="${top + row}" width="${width - 4}" height="1" fill="${fill}"/>`
     }
   }
-
-  for (let x = 129 - 40; x < 150 + 40; x += 2) {
-    out += `<rect x="${x + 1}" y="137" width="1" height="1" fill="#b39c7c"/>`
+  for (let x = cx - half - 18; x < cx + half + 18; x += 2) {
+    out += `<rect x="${x + 1}" y="${top + 10}" width="1" height="1" fill="#b39c7c"/>`
   }
 
   return out
-})()
+}
 
-// Shadows the fire throws to the left of the rocking chair, the yarn and the
-// cat, where they stand on the rug.
-const SHADOWS = (
-  [
-    [104, 130, 16, 0.3],
-    [105, 131, 28, 0.42],
-    [109, 132, 20, 0.22],
-    [133, 131, 5, 0.35],
-    [134, 130, 4, 0.3],
-    [138, 131, 13, 0.42],
-    [136, 132, 12, 0.2],
-  ] as [number, number, number, number][]
-)
-  .map(([x, y, width, opacity]) => `<rect x="${x}" y="${y}" width="${width}" height="1" fill="#000" fill-opacity="${opacity}"/>`)
-  .join('')
+// The shadow the fire throws to the left of something standing on the floor,
+// from its left edge, its width and the row its base rests on.
+const shadow = (x: number, width: number, base: number) =>
+  `<rect x="${x - 3}" y="${base}" width="${width}" height="1" fill="#000" fill-opacity=".4"/>` +
+  `<rect x="${x - 7}" y="${base + 1}" width="${width}" height="1" fill="#000" fill-opacity=".22"/>`
 
-// The back of an armchair close to the viewer, facing the fire, with a plaid
-// blanket over it. It is dark and cut off by the edges of the screen, which is
-// what puts it in front of everything else. Its pixels are drawn twice the
-// size of the rest. 28 wide and 15 tall.
+// Everything round the fire: the hearth, the rug, the rocking chair, the yarn
+// and the cat, with their shadows. The hearth's left edge is at x 136 and the
+// floor it stands on starts at y 125.
+const fireside = () => `
+  <use href="#hearth" transform="translate(136 91)"/>
+  ${rug(134, 127, 22)}
+  <ellipse cx="156" cy="128" rx="62" ry="11" fill="url(#spill)"/>
+  ${shadow(97, 20, 131)}${shadow(120, 5, 131)}${shadow(123, 16, 131)}
+  <g transform="translate(97 106)">${ROCKER}</g>
+  <g transform="translate(118 127)">${YARN}</g>
+  <use href="#cat" transform="translate(123 124)"/>`
+
+// The back of a wingback armchair close to the viewer, facing the fire, with a
+// plaid blanket over it. It is dark and cut off by the edges of the screen,
+// which puts it in front of everything else. The fire, up and to its left,
+// rims its top and left edges with light. 54 wide and 30 tall.
 const ARMCHAIR = (() => {
-  const cells = Array.from({ length: 15 }, () => Array.from({ length: 28 }, () => '.'))
-  const set = (x: number, y: number, ch: string) => {
-    const row = cells[y]
+  const W = 54
+  const H = 30
+  const g = grid(W, H)
+  const span = (y: number): [number, number] => {
+    if (y < 12) {
+      const inset = [5, 3, 2, 1][y] ?? 0
 
-    if (row !== undefined && x >= 0 && x < 28) {
-      row[x] = ch
+      return [12 + inset, 41 - inset]
     }
+
+    return y === 12 ? [3, 50] : y === 13 ? [1, 52] : [0, W - 1]
   }
 
-  for (let y = 0; y < 15; y++) {
-    const inset = Math.max(0, 2 - y)
-    const [from, to] = y >= 6 ? [y === 6 ? 1 : 0, y === 6 ? 26 : 27] : [6 + inset, 21 - inset]
+  for (let y = 0; y < H; y++) {
+    const [from, to] = span(y)
 
     for (let x = from; x <= to; x++) {
-      set(x, y, x > to - 4 || y > 11 ? 'A' : 'a')
+      g.set(x, y, x > to - 8 || y > 22 ? 'A' : 'a')
     }
   }
-
-  // Firelight from the upper left catches the top and the left side.
-  for (let x = 0; x < 28; x++) {
-    const top = cells.findIndex(row => row[x] !== '.')
-
-    if (top >= 0) {
-      set(x, top, x < 20 ? 'H' : 'j')
+  // Seams down the back, and the line where each arm rolls over.
+  for (let y = 4; y < 12; y++) {
+    g.set(18, y, 'A')
+    g.set(35, y, 'A')
+  }
+  for (const x of [11, 42]) {
+    for (let y = 14; y < 24; y++) {
+      g.set(x, y, 'A')
     }
   }
-  cells.forEach((row, y) => {
-    const left = row.findIndex(ch => ch !== '.')
-
-    if (left >= 0 && y > 0) {
-      set(left, y, 'j')
+  // Firelight along the top edge and down the left side.
+  for (let x = 0; x < W; x++) {
+    for (let y = 0; y < H; y++) {
+      if (span(y)[0] <= x && x <= span(y)[1]) {
+        g.set(x, y, x < 30 ? 'H' : 'j')
+        break
+      }
     }
-  })
-
+  }
+  for (let y = 1; y < H; y++) {
+    g.set(span(y)[0], y, y < 18 ? 'H' : 'j')
+  }
   // A plaid blanket over the back, its fringe hanging below.
-  for (let y = 0; y < 11; y++) {
-    for (let x = 9; x <= 16; x++) {
-      if (cells[y]?.[x] === '.') {
+  for (let y = 0; y < 21; y++) {
+    for (let x = 20; x <= 33; x++) {
+      const [from, to] = span(y)
+
+      if (x < from || x > to) {
         continue
       }
-      const stripe = x === 12 || x === 13 || y === 4 || y === 8
-      set(x, y, y === 0 || (y === 1 && x === 9) ? 's' : stripe ? 'J' : 'E')
+      const stripe = x === 25 || x === 26 || x === 30 || y % 6 === 4
+
+      g.set(x, y, y === 0 ? 's' : x === 20 ? 's' : stripe ? 'J' : 'E')
     }
   }
-  for (let x = 9; x <= 16; x += 2) {
-    set(x, 11, 'u')
+  for (let x = 20; x <= 33; x += 2) {
+    g.set(x, 21, 'u')
   }
 
-  return cells.map(row => row.join(''))
+  return g.rows()
 })()
 
 // The ceiling, seen from below: rows of boards that get thinner toward the
@@ -1011,6 +1059,85 @@ const BANNER = (() => {
   return out
 })()
 
+// What a season puts in each spot of the room. Everything else, the walls,
+// floor, ceiling, fireplace, clock, window frame and furniture, stays all year.
+type Dress = {
+  // The front edge of the mantel, one pixel for each x from 0 to 39.
+  garland: (x: number) => string
+  // Things hung from the mantel: their rows and the x they hang at.
+  hung: [string[], number][]
+  // What stands on the mantel, in fireplace coordinates (the mantel top is y 0).
+  mantel: string
+  // What sits on the hearth to the right of the fire.
+  hearthside: string
+  // What is outside the window, drawn over the sky inside the panes.
+  view: (daytime: boolean) => string
+  // What is taped to the glass.
+  onGlass: string
+  // Whether snow lies on the sill.
+  snowySill: boolean
+  // What hangs on the window's crossbar.
+  wreath: string
+  // The 46 by 44 corner by the window.
+  corner: string
+  // What hangs from the ceiling moulding, 400 wide and 14 tall.
+  ceiling: string
+}
+
+const AUTUMN: Dress = {
+  garland: x => AUTUMN_LEAVES[Math.floor(x / 2) % 4] ?? 'o',
+  // A few leaves trail down from the garland.
+  hung: [
+    [['o', '.', 'R'], 7],
+    [['.', 'Q'], 15],
+    [['t', '.', '.', 'o'], 24],
+    [['Q', '.', 'R'], 33],
+  ],
+  mantel: `${pixels(BIG_PUMPKIN, 12, -6)}${pixels(SMALL_PUMPKIN, 23, -4)}${pixels(GOURD, 1, -4)}`,
+  hearthside: PIE,
+  view: autumnView,
+  onGlass: HAND_TURKEY,
+  snowySill: false,
+  wreath: pixels(AUTUMN_WREATH, WINDOW_W / 2 - 4, PANES_BOTTOM / 2 - 2),
+  corner: pixels(HARVEST),
+  ceiling: LEAF_GARLAND,
+}
+
+const christmasDress = (opened: boolean): Dress => ({
+  garland: x => (x % 4 < 2 ? 'G' : 'g'),
+  hung: [
+    [STOCKING, 5],
+    [STOCKING.map(row => [...row].reverse().join('').replace(/R/g, 'P')), 28],
+  ],
+  mantel: GARLAND_BULBS,
+  hearthside: forSanta(opened),
+  view: snowyView(true),
+  onGlass: PAPER_SNOWFLAKES,
+  snowySill: true,
+  wreath: CHRISTMAS_WREATH,
+  corner: christmasTree(opened),
+  ceiling: LIGHTS,
+})
+
+const WINTER: Dress = {
+  garland: () => 'M',
+  hung: [
+    [MITTEN, 5],
+    [MITTEN.map(row => [...row].reverse().join('').replace(/R/g, 'U')), 29],
+  ],
+  mantel: SNOW_GLOBE,
+  hearthside: WOODPILE,
+  view: snowyView(false),
+  onGlass: PAPER_SNOWFLAKES,
+  snowySill: true,
+  wreath: '',
+  corner: pixels(WINTER_CORNER),
+  ceiling: SNOWFLAKE_MOBILE,
+}
+
+const dressFor = (moment: Moment): Dress =>
+  moment.season === 'autumn' ? AUTUMN : moment.season === 'winter' ? WINTER : christmasDress(moment.afterChristmas)
+
 // What the room shows depends on the local date and time when it is drawn.
 export type Moment = {
   // Between 7 in the morning and 5 in the evening: a daytime sky.
@@ -1051,16 +1178,22 @@ export const momentAt = (date: Date): Moment => {
   }
 }
 
-export const scene = (moment: Moment) => `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" shape-rendering="crispEdges">
+// The room is laid out three ways, chosen by the shape of the scene's box.
+// Wide, for a desktop window: the fireside is pinned to the bottom right and
+// the window wall to the bottom left, 300px in to clear the sidebar, with the
+// middle left clear for the conversation. Medium, for a squarer window: the
+// whole room is drawn as one picture, so nothing can slide into anything else.
+// Narrow, for a phone: the room is stacked to fit a tall screen.
+export const scene = (moment: Moment) => {
+  const dress = dressFor(moment)
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" shape-rendering="crispEdges">
 <style>
-  .narrow { display: none }
-  @media (max-aspect-ratio: 4/5) { .wide { display: none } .narrow { display: inline } }
+  .medium, .narrow { display: none }
+  @media (max-aspect-ratio: 7/4) { .wide { display: none } .medium { display: inline } }
+  @media (max-aspect-ratio: 4/5) { .medium { display: none } .narrow { display: inline } }
 </style>
 <defs>
-  <pattern id="paper" width="16" height="16" patternUnits="userSpaceOnUse">
-    <rect width="16" height="16" fill="#1a1210"/><rect width="8" height="16" fill="#1d1411"/>
-    <rect x="3" y="7" width="2" height="2" fill="#241914"/>
-  </pattern>
   <radialGradient id="glow">
     <stop offset="0" stop-color="#ff9a3a" stop-opacity=".38"/>
     <stop offset=".5" stop-color="#e2672a" stop-opacity=".14"/>
@@ -1096,45 +1229,52 @@ export const scene = (moment: Moment) => `<svg xmlns="http://www.w3.org/2000/svg
     <stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/>
   </radialGradient>
   <clipPath id="panes"><rect x="2" y="2" width="${PANES_W}" height="${PANES_BOTTOM - 1}"/></clipPath>
-  <g id="hearth">${hearth(moment)}</g>
-  <g id="window">${moment.season === 'autumn' ? autumnWindow(moment.daytime) : snowyWindow(moment.daytime, moment.season === 'christmas')}</g>
-  <g id="tree">${moment.season === 'autumn' ? pixels(HARVEST) : moment.season === 'winter' ? pixels(WINTER_CORNER) : christmasTree(moment.afterChristmas)}</g>
-  <g id="cat">${CAT}</g>
   ${roomDefs()}
   ${ceilingDefs()}
-</defs>
-<rect width="100%" height="100%" fill="url(#paper)"/>
-<svg class="wide" width="100%" height="100%" viewBox="0 0 200 140" preserveAspectRatio="xMaxYMax meet" overflow="visible">
-  ${room(true)}
-  <use href="#hearth" transform="translate(136 91)"/>
-  <g transform="translate(-16 0)">
-    ${RUG}
-    <ellipse cx="172" cy="128" rx="62" ry="11" fill="url(#spill)"/>
-    ${SHADOWS}
-    <g transform="translate(119 114)">${ROCKER}</g>
-    <g transform="translate(134 127)">${YARN}</g>
-    <use href="#cat" transform="translate(139 125)"/>
+  <g id="hearth">${hearth(dress)}</g>
+  <g id="window">${windowWith(dress, moment.daytime)}</g>
+  <g id="corner">${dress.corner}</g>
+  <g id="cat">${CAT}</g>
+  <g id="room">${room(true)}</g>
+  <g id="fireside">${fireside()}</g>
+  <g id="windowWall">
+    <use href="#window" transform="translate(2 32)"/>
+    <use href="#corner" transform="translate(0 81)"/>
+    <g transform="translate(52 119)">${MOUSE_HOLE}</g>
   </g>
-</svg>
-<!-- The left side starts 300px in, clear of the desktop app's sidebar. -->
-<svg class="wide" x="300" width="100%" height="100%" viewBox="0 0 200 140" preserveAspectRatio="xMinYMid meet">
-  <use href="#window" transform="translate(8 32)"/>
+  <g id="armchair">${pixels(ARMCHAIR)}</g>
+</defs>
+<rect width="100%" height="100%" fill="#1a1210"/>
+<svg class="wide" width="100%" height="100%" viewBox="0 0 200 140" preserveAspectRatio="xMaxYMax meet" overflow="visible">
+  <use href="#room"/>
+  <use href="#fireside"/>
 </svg>
 <svg class="wide" x="300" width="100%" height="100%" viewBox="0 0 200 140" preserveAspectRatio="xMinYMax meet" overflow="visible">
-  <use href="#tree" transform="translate(6 81)"/>
-  <g transform="translate(58 119)">${MOUSE_HOLE}</g>
+  <use href="#windowWall" transform="translate(6 0)"/>
 </svg>
 <svg class="wide" width="100%" height="100%" viewBox="0 0 200 140" preserveAspectRatio="xMaxYMax meet" overflow="visible">
-  <g transform="translate(170 116) scale(2)">${pixels(ARMCHAIR)}</g>
+  <use href="#armchair" transform="translate(160 116)"/>
+</svg>
+<svg class="medium" width="100%" height="100%" viewBox="0 0 250 140" preserveAspectRatio="xMaxYMax meet" overflow="visible">
+  <g transform="translate(50 0)"><use href="#room"/><use href="#fireside"/></g>
+  <use href="#windowWall" transform="translate(66 0)"/>
+  <use href="#armchair" transform="translate(210 116)"/>
 </svg>
 <svg class="narrow" width="100%" height="100%" viewBox="0 0 120 260" preserveAspectRatio="xMidYMin meet" overflow="visible">
-  <g transform="translate(0 -5)">${room(false)}</g>
-  <use href="#window" transform="translate(2 40)"/>
-  <use href="#tree" transform="translate(32 76)"/>
-  <use href="#hearth" transform="translate(79 86)"/>
+  <g transform="translate(0 20)">${room(false)}</g>
+  <use href="#window" transform="translate(2 65)"/>
+  <use href="#corner" transform="translate(32 101)"/>
+  <use href="#hearth" transform="translate(79 111)"/>
+  ${rug(64, 147, 16)}
+  <ellipse cx="96" cy="150" rx="50" ry="10" fill="url(#spill)"/>
+  ${shadow(6, 20, 150)}${shadow(66, 16, 150)}
+  <g transform="translate(6 125)">${ROCKER}</g>
+  <g transform="translate(58 145)">${YARN}</g>
+  <use href="#cat" transform="translate(66 143)"/>
 </svg>
 <rect width="100%" height="100%" fill="url(#dim)"/>
 <svg width="100%" height="90" viewBox="0 0 800 15" preserveAspectRatio="xMinYMin slice">${CEILING}</svg>
-<svg y="84" width="100%" height="84" viewBox="0 0 400 14" preserveAspectRatio="xMinYMin slice">${{ autumn: LEAF_GARLAND, christmas: LIGHTS, winter: SNOWFLAKE_MOBILE }[moment.season]}</svg>
+<svg y="84" width="100%" height="84" viewBox="0 0 400 14" preserveAspectRatio="xMinYMin slice">${dress.ceiling}</svg>
 ${moment.newYear ? `<svg y="150" width="100%" height="66" viewBox="0 0 120 11" preserveAspectRatio="xMaxYMin meet">${BANNER}</svg>` : ''}
 </svg>`
+}
