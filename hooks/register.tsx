@@ -56,12 +56,16 @@ export const register: Register = on => {
       return next(e)
     }
     const { Svg } = $.ui.resolve(e)
-    const now = new Date(await $.clock.now())
+    const moment = momentAt(new Date(await $.clock.now()))
 
     return (
       <Svg
-        source={scene(momentAt(now))}
-        alt="A pixel-art living room at Christmas: a fire with stockings, a rocking chair and a sleeping cat, a tree with presents, and a snowy window"
+        source={scene(moment)}
+        alt={
+          moment.autumn
+            ? 'A pixel-art living room at Thanksgiving: a fire with pumpkins on the mantel, a rocking chair and a sleeping cat, corn stalks and a hay bale, and autumn trees through the window'
+            : 'A pixel-art living room at Christmas: a fire with stockings, a rocking chair and a sleeping cat, a tree with presents, and a snowy window'
+        }
         isInteractive
       />
     )

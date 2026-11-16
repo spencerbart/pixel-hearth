@@ -55,11 +55,19 @@ const PALETTE: Record<string, string> = {
   J: '#203b27', // blanket, green
   s: '#8a3426', // blanket, red in firelight
   u: '#a8916f', // blanket fringe
+  o: '#cf6f28', // pumpkin
+  t: '#9c4a1c', // pumpkin ribs, pie filling, rust leaves
+  x: '#4f5a24', // pumpkin stem, grass outside
+  I: '#b8955a', // corn stalk
+  i: '#7f6438', // corn stalk in shade
+  z: '#c9a256', // hay
 }
 
-// One rect per run of a color along a row. '.' is empty.
+// One path per color, with a box for each run of that color along a row. '.' is
+// empty. Paths keep the scene well under the size limit, where a rect per run
+// would not.
 const pixels = (rows: string[], x0 = 0, y0 = 0) => {
-  let out = ''
+  const runs = new Map<string, string>()
 
   rows.forEach((row, y) => {
     let x = 0
@@ -74,13 +82,13 @@ const pixels = (rows: string[], x0 = 0, y0 = 0) => {
       const fill = PALETTE[ch]
 
       if (fill !== undefined) {
-        out += `<rect x="${x0 + x}" y="${y0 + y}" width="${end - x}" height="1" fill="${fill}"/>`
+        runs.set(fill, `${runs.get(fill) ?? ''}M${x0 + x} ${y0 + y}h${end - x}v1h${x - end}z`)
       }
       x = end
     }
   })
 
-  return out
+  return [...runs].map(([fill, d]) => `<path fill="${fill}" d="${d}"/>`).join('')
 }
 
 const grid = (w: number, h: number) => {
@@ -98,10 +106,19 @@ const grid = (w: number, h: number) => {
   }
 }
 
+// Red, orange, gold and rust, the colors of the autumn leaves.
+const AUTUMN_LEAVES = ['R', 'o', 'Q', 't']
+
+// Pumpkins: a stem on top and ribs down the body.
+const BIG_PUMPKIN = ['....xx....', '.ootootoo.', 'oootootooo', 'oootootooo', 'oootootooo', '.ootootoo.']
+const SMALL_PUMPKIN = ['..x...', '.otto.', 'oottoo', '.otto.']
+const GOURD = ['.x..', 'QQQ.', 'QQQQ', '.QQ.']
+
 const STOCKING = ['wwwww..', 'wwwww..', 'RRRRR..', 'RRRRR..', 'RRRRR..', 'RRRRRR.', 'RRRRRRR', '.RRRRRR', '..RRRR.']
 
-// The fireplace, 40 wide and 34 tall.
-const fireplace = () => {
+// The fireplace, 40 wide and 34 tall. At Christmas a garland and stockings
+// hang from the mantel. In autumn a garland of leaves hangs there instead.
+const fireplace = (autumn: boolean) => {
   const g = grid(40, 34)
 
   for (let y = 4; y < 30; y++) {
@@ -117,7 +134,7 @@ const fireplace = () => {
     g.set(x, 0, 'W')
     g.set(x, 1, 'M')
     g.set(x, 2, 'M')
-    g.set(x, 3, x % 4 < 2 ? 'G' : 'g')
+    g.set(x, 3, autumn ? (AUTUMN_LEAVES[Math.floor(x / 2) % 4] ?? 'o') : x % 4 < 2 ? 'G' : 'g')
   }
   for (let y = 13; y < 30; y++) {
     const inset = y === 13 ? 3 : y === 14 ? 1 : 0
@@ -143,6 +160,15 @@ const fireplace = () => {
   const hang = (rows: string[], x0: number) =>
     rows.forEach((row, y) => [...row].forEach((c, x) => c !== '.' && g.set(x0 + x, 4 + y, c)))
 
+  if (autumn) {
+    // A few leaves trail down from the garland.
+    hang(['o', '.', 'R'], 7)
+    hang(['.', 'Q'], 15)
+    hang(['t', '.', '.', 'o'], 24)
+    hang(['Q', '.', 'R'], 33)
+
+    return g.rows()
+  }
   hang(STOCKING, 5)
   hang(
     STOCKING.map(row => [...row].reverse().join('').replace(/R/g, 'P')),
@@ -254,19 +280,22 @@ const WALL_CLOCK = (() => {
   return g.rows()
 })()
 
-const hearth = (eaten: boolean) => `
+// A pumpkin pie on a plate, with a dollop of cream, for the right of the hearth.
+const PIE = pixels(['...ww....', '.DttttD..', 'DDDDDDDD.', 'wwwwwwwww'], 30, 26)
+
+const hearth = (moment: Moment) => `
   <ellipse cx="20" cy="22" rx="70" ry="48" fill="url(#glow)"/>
-  ${pixels(fireplace())}
+  ${pixels(fireplace(moment.autumn))}
   <ellipse cx="20" cy="24" rx="10" ry="8" fill="url(#firebox)"/>
   ${pixels(FLAME, 13, 17)}
   ${pixels(['Y'], 16, 15)}${pixels(['O'], 23, 14)}${pixels(['r'], 19, 13)}
-  ${GARLAND_BULBS}
+  ${moment.autumn ? `${pixels(BIG_PUMPKIN, 12, -6)}${pixels(SMALL_PUMPKIN, 23, -4)}${pixels(GOURD, 1, -4)}` : GARLAND_BULBS}
   ${pixels(['w', 'w', 'w', 'w'], 5, -4)}${pixels(['ww', 'ww', 'ww', 'ww', 'ww', 'ww'], 8, -6)}
   ${pixels(['ww', 'ww', 'ww', 'ww', 'ww'], 31, -5)}
   ${CANDLE_FLAMES}
   ${pixels(WALL_CLOCK, 14, -47)}
   ${COCOA}
-  ${forSanta(eaten)}`
+  ${moment.autumn ? PIE : forSanta(moment.afterChristmas)}`
 
 // A rocking chair facing the fire, a blanket over its back, 14 wide and 17
 // tall. The ball of yarn beside it trails a thread to the cat.
@@ -301,7 +330,7 @@ const WINDOW_H = 46
 const PANES_W = WINDOW_W - 4
 const PANES_BOTTOM = WINDOW_H - 6
 
-const windowFrame = () => {
+const windowFrame = (snow: boolean) => {
   const g = grid(WINDOW_W, WINDOW_H)
   const midX = WINDOW_W / 2
   const midY = 1 + PANES_BOTTOM / 2
@@ -317,10 +346,10 @@ const windowFrame = () => {
     }
   }
   for (let x = 2; x < WINDOW_W - 2; x++) {
-    g.set(x, PANES_BOTTOM, 'w')
+    g.set(x, PANES_BOTTOM, snow ? 'w' : 'F')
   }
   for (let x = -1; x < WINDOW_W + 1; x++) {
-    g.set(x, WINDOW_H - 4, 'w')
+    g.set(x, WINDOW_H - 4, snow ? 'w' : 'f')
     g.set(x, WINDOW_H - 3, 'f')
     g.set(x, WINDOW_H - 2, 'F')
   }
@@ -392,8 +421,147 @@ const snowyWindow = (daytime: boolean) => `
     ${FLAKES}
     ${PAPER_SNOWFLAKES}
   </g>
-  ${pixels(windowFrame())}
+  ${pixels(windowFrame(true))}
   ${pixels(['..gGg..', '.GR.GG.', 'gG...Gg', 'G.....G', 'gG...Rg', '.GG.GG.', '..RwR..'], WINDOW_W / 2 - 4, PANES_BOTTOM / 2 - 2)}`
+
+// The autumn view: round trees in reds and golds over grass, with leaves
+// falling past the glass. By night the colors darken under the moon.
+const autumnTrees = (daytime: boolean) => {
+  const g = grid(PANES_W, 22)
+  const tones = daytime ? ['o', 'R', 'Q', 't', 'o'] : ['t', 'e', 't', 'd', 'e']
+  const lit = daytime ? 'Q' : 'o'
+  const tree = (cx: number, cy: number, rx: number, ry: number) => {
+    for (let y = cy; y < 22; y++) {
+      g.set(cx, y, 'k')
+    }
+    for (let y = -ry; y <= ry; y++) {
+      for (let x = -rx; x <= rx; x++) {
+        if ((x * x) / (rx * rx + 0.5) + (y * y) / (ry * ry + 0.5) <= 1) {
+          const edge = x > 0 && y < 0 && (x * x) / (rx * rx) + (y * y) / (ry * ry) > 0.45
+
+          // Leaves in clumps two pixels across, so the crown reads as foliage.
+          const clump = Math.floor((x + 20) / 2) * 7 + Math.floor((y + 20) / 2) * 3 + cx
+
+          g.set(cx + x, cy + y, edge ? lit : (tones[clump % tones.length] ?? 'o'))
+        }
+      }
+    }
+  }
+  tree(5, 12, 5, 5)
+  tree(15, 8, 6, 6)
+  tree(26, 13, 4, 4)
+  tree(32, 9, 5, 6)
+
+  return g.rows()
+}
+
+const AUTUMN_GROUND = (() => {
+  const g = grid(PANES_W, 3)
+
+  for (let x = 0; x < PANES_W; x++) {
+    if (x % 7 === 2 || x % 11 === 5) {
+      g.set(x, 0, 'x')
+    }
+    g.set(x, 1, x % 5 === 1 ? (AUTUMN_LEAVES[x % 4] ?? 'o') : 'x')
+    g.set(x, 2, x % 3 === 0 ? (AUTUMN_LEAVES[(x + 1) % 4] ?? 'o') : 'x')
+  }
+
+  return g.rows()
+})()
+
+const FALLING_LEAVES = (daytime: boolean) =>
+  Array.from({ length: 16 }, (_, i) => {
+    const x = 3 + ((i * 9 + Math.floor(i / 3)) % (PANES_W - 2))
+    const y = 4 + ((i * 13) % (PANES_BOTTOM - 8))
+    const fill = PALETTE[AUTUMN_LEAVES[i % 4] ?? 'o']
+
+    return `<rect x="${x}" y="${y}" width="${i % 2 ? 2 : 1}" height="1" fill="${fill}"${daytime ? '' : ' opacity=".6"'}/>`
+  }).join('')
+
+// Geese flying south in a V, dark against the day sky and lit by the moon at
+// night.
+const geese = (daytime: boolean) =>
+  pixels(['.....k', '...k..', '.k....', '...k..', '.....k'].map(row => (daytime ? row : row.replace(/k/g, 'X'))), 22, 14)
+
+// A handprint turkey made at school, taped to the glass.
+const HAND_TURKEY = pixels(['..qq...', 'R.o.Q..', 'R.o.Q.c', 'RooQQcc', '.cccccD', '.cccc..', '..d.d..'], 4, 4)
+
+const AUTUMN_WREATH = ['..gGg..', '.GR.GG.', 'gG...Gg', 'G.....G', 'gG...Rg', '.GG.GG.', '..RwR..'].map(row =>
+  row.replace(/[gGRw]/g, c => ({ g: 'R', G: 'o', R: 'Q', w: 't' })[c] ?? c),
+)
+
+const autumnWindow = (daytime: boolean) => `
+  <g clip-path="url(#panes)">
+    <rect x="2" y="2" width="${PANES_W}" height="${PANES_BOTTOM - 1}" fill="url(#${daytime ? 'day' : 'night'})"/>
+    ${
+      daytime
+        ? '<circle cx="31" cy="10" r="12" fill="url(#sunlight)"/>'
+        : `<circle cx="32" cy="7" r="9" fill="url(#moonlight)"/>${pixels(['.yyyy.', 'yyyyyy', 'yyyyyy', 'yyyyyy', 'yyyyyy', '.yyyy.'], 29, 4)}`
+    }
+    ${geese(daytime)}
+    ${pixels(autumnTrees(daytime), 2, PANES_BOTTOM - 22)}
+    ${pixels(AUTUMN_GROUND, 2, PANES_BOTTOM - 3)}
+    ${FALLING_LEAVES(daytime)}
+    ${HAND_TURKEY}
+  </g>
+  ${pixels(windowFrame(false))}
+  ${pixels(AUTUMN_WREATH, WINDOW_W / 2 - 4, PANES_BOTTOM / 2 - 2)}`
+
+// Corn stalks tied in a bundle behind a hay bale, with pumpkins and a gourd
+// on the bale and more pumpkins on the floor. It stands where the Christmas
+// tree goes, in the same 46 by 44.
+const HARVEST = (() => {
+  const g = grid(46, 44)
+  const cx = 14
+  const tie = 24
+  const put = (rows: string[], x0: number, y0: number) =>
+    rows.forEach((row, y) => [...row].forEach((c, x) => c !== '.' && g.set(x0 + x, y0 + y, c)))
+
+  for (let k = -4; k <= 4; k++) {
+    const top = 2 + Math.abs(k) + (k % 2 === 0 ? 0 : 2)
+    const color = k % 2 === 0 ? 'I' : 'i'
+    const side = k < 0 ? -1 : 1
+
+    for (let y = top; y < 44; y++) {
+      const x =
+        y < tie
+          ? Math.round(cx + (k * 0.5) + ((k * 1.6) * (tie - y)) / (tie - top))
+          : Math.round(cx + (k * 0.5) + (k * 0.6 * (y - tie)) / (43 - tie))
+
+      g.set(x, y, color)
+
+      // A leaf curling out and down from the stalk.
+      if (k !== 0 && Math.abs(k) % 2 === 0 && y - top === 7) {
+        g.set(x + side, y, 'i')
+        g.set(x + 2 * side, y + 1, 'i')
+        g.set(x + 3 * side, y + 1, 'i')
+        g.set(x + 4 * side, y + 2, 'i')
+      }
+    }
+    g.set(Math.round(cx + k * 2.1), top - 1, 'z')
+  }
+  for (let x = cx - 4; x <= cx + 4; x++) {
+    g.set(x, tie, 'd')
+    g.set(x, tie + 1, 'L')
+  }
+  for (let y = 35; y < 44; y++) {
+    for (let x = 0; x < 28; x++) {
+      const band = x === 7 || x === 20
+      const shade = y === 43 || (x * 3 + y * 2) % 7 === 0
+
+      g.set(x, y, band ? 'd' : y === 35 ? 'D' : shade ? 'D' : 'z')
+    }
+  }
+  put(BIG_PUMPKIN, 9, 29)
+  put(SMALL_PUMPKIN, 20, 31)
+  put(GOURD, 2, 31)
+  put(BIG_PUMPKIN, 30, 38)
+  put(SMALL_PUMPKIN, 40, 40)
+  put(['R.', '.Q'], 28, 42)
+  put(['t'], 44, 39)
+
+  return g.rows()
+})()
 
 // A Christmas tree with a glowing star and lit ornaments, a skirt, and
 // presents piled beside it. 46 wide and 44 tall. From Christmas Day the
@@ -689,6 +857,29 @@ const LIGHTS = (() => {
   return `<path d="${wire}" fill="none" stroke="#1f3a26" stroke-width="1"/>${bulbs}${mistletoe}`
 })()
 
+// In autumn a twine garland hangs in the same sags, strung with leaves.
+const LEAF_GARLAND = (() => {
+  const span = 16
+  const sag = (x: number) => {
+    const t = ((x % span) - span / 2) / (span / 2)
+
+    return 1 + Math.round(3 * (1 - t * t))
+  }
+  let wire = ''
+  let leaves = ''
+
+  for (let x = 0; x < 400; x++) {
+    wire += `${x === 0 ? 'M' : 'L'}${x} ${sag(x) + 0.5}H${x + 1}`
+  }
+  for (let x = 2, i = 0; x < 400; x += 4, i++) {
+    const c = AUTUMN_LEAVES[i % 4] ?? 'o'
+
+    leaves += pixels(i % 2 ? [`${c}${c}`, `.${c}`] : [`${c}${c}`, `${c}.`], x, sag(x) + 1)
+  }
+
+  return `<path d="${wire}" fill="none" stroke="#6e4426" stroke-width="1"/>${leaves}`
+})()
+
 // A pixel font, 5 rows tall, for the New Year banner.
 const LETTERS: Record<string, string[]> = {
   H: ['#.#', '#.#', '###', '#.#', '#.#'],
@@ -739,6 +930,16 @@ export type Moment = {
   afterChristmas: boolean
   // New Year's Eve and New Year's Day: the banner is up.
   newYear: boolean
+  // From November 1 through Thanksgiving: pumpkins, leaves and a pie in place
+  // of the Christmas things. Christmas starts the day after Thanksgiving.
+  autumn: boolean
+}
+
+// Thanksgiving is the fourth Thursday of November.
+const thanksgivingDay = (year: number) => {
+  const firstWeekday = new Date(year, 10, 1).getDay()
+
+  return 1 + ((4 - firstWeekday + 7) % 7) + 21
 }
 
 export const momentAt = (date: Date): Moment => {
@@ -747,6 +948,7 @@ export const momentAt = (date: Date): Moment => {
   const hour = date.getHours()
 
   return {
+    autumn: month === 11 && day <= thanksgivingDay(date.getFullYear()),
     daytime: hour >= 7 && hour < 17,
     afterChristmas: (month === 12 && day >= 25) || (month === 1 && day <= 6),
     newYear: (month === 12 && day === 31) || (month === 1 && day === 1),
@@ -798,9 +1000,9 @@ export const scene = (moment: Moment) => `<svg xmlns="http://www.w3.org/2000/svg
     <stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/>
   </radialGradient>
   <clipPath id="panes"><rect x="2" y="2" width="${PANES_W}" height="${PANES_BOTTOM - 1}"/></clipPath>
-  <g id="hearth">${hearth(moment.afterChristmas)}</g>
-  <g id="window">${snowyWindow(moment.daytime)}</g>
-  <g id="tree">${christmasTree(moment.afterChristmas)}</g>
+  <g id="hearth">${hearth(moment)}</g>
+  <g id="window">${moment.autumn ? autumnWindow(moment.daytime) : snowyWindow(moment.daytime)}</g>
+  <g id="tree">${moment.autumn ? pixels(HARVEST) : christmasTree(moment.afterChristmas)}</g>
   <g id="cat">${CAT}</g>
   ${roomDefs()}
   ${ceilingDefs()}
@@ -837,6 +1039,6 @@ export const scene = (moment: Moment) => `<svg xmlns="http://www.w3.org/2000/svg
 </svg>
 <rect width="100%" height="100%" fill="url(#dim)"/>
 <svg width="100%" height="90" viewBox="0 0 800 15" preserveAspectRatio="xMinYMin slice">${CEILING}</svg>
-<svg y="84" width="100%" height="84" viewBox="0 0 400 14" preserveAspectRatio="xMinYMin slice">${LIGHTS}</svg>
+<svg y="84" width="100%" height="84" viewBox="0 0 400 14" preserveAspectRatio="xMinYMin slice">${moment.autumn ? LEAF_GARLAND : LIGHTS}</svg>
 ${moment.newYear ? `<svg y="150" width="100%" height="66" viewBox="0 0 120 11" preserveAspectRatio="xMaxYMin meet">${BANNER}</svg>` : ''}
 </svg>`
