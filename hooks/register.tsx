@@ -37,7 +37,7 @@ const ALT: Record<Season, string> = {
   christmas:
     'A pixel-art living room at Christmas: a fire with stockings, a rocking chair and a sleeping cat, a tree with presents, and a snowy window',
   winter:
-    'A pixel-art living room in winter: a fire with mittens drying on the mantel, a rocking chair and a sleeping cat, a sled and ice skates, and a snowy window',
+    'A pixel-art living room in winter: a fire with mittens drying on the mantel, a rocking chair and a sleeping cat, a coat rack with ice skates and snow boots, and a snowy window',
 }
 
 export const register: Register = on => {
