@@ -1621,10 +1621,11 @@ export const scene = (moment: Moment) => {
 <svg class="wide" width="100%" height="100%" viewBox="0 0 200 140" preserveAspectRatio="xMaxYMax meet" overflow="visible">
   <use href="#armchair" transform="translate(160 116)"/>
 </svg>
-<svg class="medium" width="100%" height="100%" viewBox="0 0 250 140" preserveAspectRatio="xMaxYMax meet" overflow="visible">
-  <g transform="translate(50 0)"><use href="#room"/><use href="#fireside"/></g>
-  <use href="#windowWall" transform="translate(66 0)"/>
-  <use href="#armchair" transform="translate(210 116)"/>
+<svg class="medium" width="100%" height="100%" viewBox="0 0 200 140" preserveAspectRatio="xMaxYMax meet" overflow="visible">
+  <use href="#room"/>
+  <use href="#fireside"/>
+  <use href="#windowWall" transform="translate(6 0)"/>
+  <use href="#armchair" transform="translate(160 116)"/>
 </svg>
 <svg class="narrow" width="100%" height="100%" viewBox="0 0 120 260" preserveAspectRatio="xMidYMin meet" overflow="visible">
   <g transform="translate(0 20)">${room(false)}</g>
