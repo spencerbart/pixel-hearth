@@ -1042,13 +1042,13 @@ const LEAF_GARLAND = strung('#6e4426', 2, 4, (x, i, y) => {
   return pixels(i % 2 ? [`${c}${c}`, `.${c}`] : [`${c}${c}`, `${c}.`], x, y + 1)
 })
 
-// In spring, cloth bunting on a cord: three pennants to each sag, in the
-// colors of the spring flowers and leaves.
-const BUNTING = strung('#b39c7c', 3, 4, (x, i, y) => {
+// Cloth bunting on a cord: three pennants to each sag, in turn through the
+// colors given.
+const bunting = (colors: string[]) => strung('#b39c7c', 3, 4, (x, i, y) => {
   if (x % 16 === 15) {
     return ''
   }
-  const c = ['3', 'Y', '4', '2', '1'][i % 5] ?? '3'
+  const c = colors[i % colors.length] ?? 'R'
 
   return pixels([`${c}${c}${c}`, `${c}${c}${c}`, `.${c}.`], x - 1, y + 1)
 })
@@ -1071,15 +1071,21 @@ const LETTERS: Record<string, string[]> = {
   E: ['###', '#..', '###', '#..', '###'],
   W: ['#...#', '#...#', '#.#.#', '##.##', '#...#'],
   R: ['###', '#.#', '##.', '#.#', '#.#'],
+  G: ['###', '#..', '#.#', '#.#', '###'],
+  I: ['###', '.#.', '.#.', '.#.', '###'],
+  V: ['#.#', '#.#', '#.#', '#.#', '.#.'],
+  T: ['###', '.#.', '.#.', '.#.', '.#.'],
+  K: ['#.#', '#.#', '##.', '#.#', '#.#'],
+  S: ['###', '#..', '###', '..#', '###'],
 }
 
-// "HAPPY NEW YEAR" on pennants along a cord, 120 wide and 11 tall.
-const BANNER = (() => {
-  const flags = ['R', 'P', 'Q', 'U']
-  let out = '<rect x="2" y="0" width="116" height="1" fill="#1f3a26"/>'
+// Words on pennants along a cord, one pennant to a letter, 8 wide for each
+// letter or space and 11 tall. The pennants take the colors given in turn.
+const banner = (text: string, flags: string[]) => {
+  let out = `<rect x="2" y="0" width="${text.length * 8 + 4}" height="1" fill="#1f3a26"/>`
   let slot = 0
 
-  for (const ch of 'HAPPY NEW YEAR') {
+  for (const ch of text) {
     const x0 = 4 + slot * 8
     const glyph = LETTERS[ch]
 
@@ -1087,8 +1093,8 @@ const BANNER = (() => {
     if (glyph === undefined) {
       continue
     }
-    const flag = flags[slot % 4] ?? 'R'
-    const ink = flag === 'Q' ? 'k' : 'w'
+    const flag = flags[slot % flags.length] ?? 'R'
+    const ink = flag === 'Q' || flag === 'w' ? 'k' : 'w'
     const width = glyph[0]?.length ?? 3
     const pad = Math.floor((7 - width) / 2)
 
@@ -1101,7 +1107,7 @@ const BANNER = (() => {
   }
 
   return out
-})()
+}
 
 const put = (g: ReturnType<typeof grid>, rows: string[], x0: number, y0: number) =>
   rows.forEach((row, y) => [...row].forEach((c, x) => c !== '.' && g.set(x0 + x, y0 + y, c)))
@@ -1244,15 +1250,13 @@ const SPRING_CORNER = (() => {
 
 // Summer things on the mantel: a starfish, a model sailboat on a stand and a
 // jar of shells.
-const SUMMER_MANTEL = [
-  pixels(['..o..', 'ooooo', '.o.o.'], 0, -3),
-  pixels(
-    ['....R....', '....k....', '...wk....', '..wwk....', '.wwwkw...', 'wwwwkww..', '....k....', 'LLLLLLLLL', '.LlLLlLL.', '...MMM...'],
-    12,
-    -10,
-  ),
-  pixels(['.MMMM.', 'X....X', 'X.w..X', 'X2u3wX', 'Xwu2uX', '.XXXX.'], 23, -6),
-].join('')
+const STARFISH = pixels(['..o..', 'ooooo', '.o.o.'], 0, -3)
+const SAILBOAT = pixels(
+  ['....R....', '....k....', '...wk....', '..wwk....', '.wwwkw...', 'wwwwkww..', '....k....', 'LLLLLLLLL', '.LlLLlLL.', '...MMM...'],
+  12,
+  -10,
+)
+const SUMMER_MANTEL = `${STARFISH}${SAILBOAT}${pixels(['.MMMM.', 'X....X', 'X.w..X', 'X2u3wX', 'Xwu2uX', '.XXXX.'], 23, -6)}`
 
 // A straw hat hung from the mantel, its ribbon trailing below the brim, and a
 // string of shells.
@@ -1542,6 +1546,106 @@ const HALLOWEEN_STRING = strung('#1f1410', 4, 4, (x, i, y) => {
   return `<circle cx="${x + 0.5}" cy="${y + 3.5}" r="4" fill="url(#warm)"/><rect x="${x - 0.5}" y="${y + 1}" width="2" height="1" fill="#1c1410"/><rect x="${x - 0.5}" y="${y + 2}" width="2" height="3" fill="#f28a2a"/>`
 })
 
+// Thanksgiving Day: a wicker horn of plenty spilling apples, pears, grapes and
+// an orange on the mantel, beside a gourd.
+const CORNUCOPIA = (() => {
+  const g = grid(19, 9)
+
+  // The horn widens from a tip curled up on the left to its mouth on the right,
+  // lying on the mantel, woven in two tones.
+  for (let x = 0; x <= 11; x++) {
+    const t = x / 11
+    const bottom = 8 - Math.round((1 - t) * (1 - t) * 5)
+    const top = bottom - Math.round(1 + 6 * t * t)
+
+    for (let y = top; y <= bottom; y++) {
+      g.set(x, y, y === top || y === bottom || x === 11 ? 'D' : (x + 2 * y) % 4 === 0 ? 'D' : 'z')
+    }
+  }
+  g.set(0, 1, 'D')
+
+  // Fruit spilling from the mouth: grapes, a pear, an orange and apples.
+  put(g, ['..g.....', '.QQ.g...', 'VQQ.oo..', 'VVRRoo..', 'VVRR.RR.', '.V...RRo', '......oo'], 11, 2)
+
+  return g.rows()
+})()
+
+const THANKSGIVING_MANTEL = `${pixels(GOURD, 1, -4)}${pixels(CORNUCOPIA, 11, -9)}`
+
+// A roast turkey on a platter on the hearth, its drumsticks in paper frills,
+// with greens round it.
+const ROAST_TURKEY = pixels(
+  ['.w.......w.', '.DD.....DD.', '..DDDDDDD..', '.DDQQDDDDD.', '.DDDDDDDDD.', 'g.ddDDDdd.g', 'wwwwwwwwwww'],
+  29,
+  23,
+)
+
+// Half a fan of red, white and blue bunting, hung from the mantel.
+const FAN = (() => {
+  const g = grid(13, 7)
+
+  for (let y = 0; y < 7; y++) {
+    for (let x = 0; x < 13; x++) {
+      const d = Math.hypot(x - 6, y)
+
+      if (d <= 6.5) {
+        g.set(x, y, d <= 2.2 ? 'U' : d <= 3.6 ? 'R' : d <= 5 ? 'w' : 'R')
+      }
+    }
+  }
+  g.set(6, 1, 'w')
+
+  return g.rows()
+})()
+
+// A small flag on a stick, standing in a wooden block on the mantel.
+const MANTEL_FLAG = pixels(
+  ['kUwUwRRR', 'kwUwUwww', 'kUwUwRRR', 'kwwwwwww', 'kRRRRRRR', 'k.......', 'k.......', 'k.......', 'k.......', 'k.......', 'k.......', 'MMM.....'],
+  23,
+  -12,
+)
+
+// A flag on a pole in the yard by day.
+const YARD_FLAG = `${pixels(['Q'], 30, 13)}${pixels(Array<string>(PANES_BOTTOM - 17).fill('Z'), 30, 14)}${pixels(
+  ['UwUwRRR', 'wUwUwww', 'UwUwRRR', 'wwwwwww', 'RRRRRRR'],
+  31,
+  14,
+)}`
+
+// A firework bursting: two rings of sparks round a bright heart, with a glow
+// in its color.
+const burst = (cx: number, cy: number, r: number, color: string, halo: number) => {
+  let out = `<circle cx="${cx + 0.5}" cy="${cy + 0.5}" r="${r + 2}" fill="url(#halo${halo})"/>`
+
+  for (let k = 0; k < 12; k++) {
+    const a = (k * Math.PI) / 6
+
+    for (const d of [r - 2, r]) {
+      out += `<rect x="${Math.round(cx + d * Math.cos(a))}" y="${Math.round(cy + d * Math.sin(a))}" width="1" height="1" fill="${color}"/>`
+    }
+  }
+
+  return `${out}<rect x="${cx}" y="${cy}" width="1" height="1" fill="#fff3c4"/>`
+}
+
+const FIREWORKS = `${burst(16, 11, 5, '#e0453a', 0)}${burst(25, 15, 3, '#5aa7e6', 3)}${burst(7, 15, 3, '#f2c14e', 2)}`
+
+// The summer view, with a flag in the yard by day and fireworks at night.
+const fourthView = (daytime: boolean) => `
+    ${daytime ? '' : FIREWORKS}
+    ${summerView(daytime)}
+    ${daytime ? YARD_FLAG : ''}`
+
+// A paper star taped to the glass.
+const PAPER_STAR = pixels(['...q...', '...w...', '..www..', 'wwwwwww', '.wwwww.', '.ww.ww.', 'w.....w'], 4, 4)
+
+// A red, white and blue rosette with ribbons on the window's crossbar.
+const ROSETTE = pixels(
+  ['..RRR..', '.RwwwR.', 'RwUUUwR', 'RwUwUwR', 'RwUUUwR', '.RwwwR.', '..RRR..', '..R.R..', '.R...R.'],
+  WINDOW_W / 2 - 4,
+  PANES_BOTTOM / 2 - 3,
+)
+
 // What a season puts in each spot of the room. Everything else, the walls,
 // floor, ceiling, fireplace, clock, window frame and furniture, stays all year.
 type Dress = {
@@ -1633,7 +1737,7 @@ const SPRING: Dress = {
   snowySill: false,
   wreath: SPRING_WREATH,
   corner: pixels(SPRING_CORNER),
-  ceiling: BUNTING,
+  ceiling: bunting(['3', 'Y', '4', '2', '1']),
 }
 
 const SUMMER: Dress = {
@@ -1668,8 +1772,34 @@ const HALLOWEEN: Dress = {
   ceiling: HALLOWEEN_STRING,
 }
 
+// Thanksgiving Day is the autumn room with the feast laid out.
+const THANKSGIVING: Dress = {
+  ...AUTUMN,
+  mantel: THANKSGIVING_MANTEL,
+  hearthside: ROAST_TURKEY,
+}
+
+// The Fourth of July is the summer room dressed in red, white and blue.
+const FOURTH_OF_JULY: Dress = {
+  ...SUMMER,
+  garland: x => ['R', 'w', 'U'][Math.floor(x / 2) % 3] ?? 'R',
+  hung: [
+    [FAN, 0],
+    [FAN, 27],
+  ],
+  mantel: `${STARFISH}${SAILBOAT}${MANTEL_FLAG}`,
+  view: fourthView,
+  onGlass: PAPER_STAR,
+  wreath: ROSETTE,
+  ceiling: bunting(['R', 'w', 'U']),
+}
+
 const dressFor = (moment: Moment): Dress => {
   switch (moment.season) {
+    case 'thanksgiving':
+      return THANKSGIVING
+    case 'fourth-of-july':
+      return FOURTH_OF_JULY
     case 'halloween':
       return HALLOWEEN
     case 'spring':
@@ -1698,11 +1828,20 @@ export type Moment = {
   // again from November 1 through Thanksgiving, with pumpkins, leaves and a
   // pie. October is Halloween. Christmas starts the day after Thanksgiving and
   // runs through New Year's Day. Winter runs from January 2 to March 19, with
-  // snow outside and nothing of Christmas left.
+  // snow outside and nothing of Christmas left. Thanksgiving Day and the
+  // Fourth of July each have a room of their own for the day.
   season: Season
 }
 
-export type Season = 'spring' | 'summer' | 'autumn' | 'halloween' | 'christmas' | 'winter'
+export type Season =
+  | 'spring'
+  | 'fourth-of-july'
+  | 'summer'
+  | 'autumn'
+  | 'halloween'
+  | 'thanksgiving'
+  | 'christmas'
+  | 'winter'
 
 // Thanksgiving is the fourth Thursday of November.
 const thanksgivingDay = (year: number) => {
@@ -1718,8 +1857,13 @@ export const momentAt = (date: Date): Moment => {
 
   // The date as a number, so March 20 is 320.
   const md = month * 100 + day
+  const thanksgiving = 1100 + thanksgivingDay(date.getFullYear())
   const season: Season =
-    md >= 102 && md <= 319
+    md === thanksgiving
+      ? 'thanksgiving'
+      : md === 704
+        ? 'fourth-of-july'
+        : md >= 102 && md <= 319
       ? 'winter'
       : md >= 320 && md <= 620
         ? 'spring'
@@ -1727,7 +1871,7 @@ export const momentAt = (date: Date): Moment => {
           ? 'summer'
           : month === 10
             ? 'halloween'
-            : md >= 922 && md <= 1100 + thanksgivingDay(date.getFullYear())
+            : md >= 922 && md < thanksgiving
               ? 'autumn'
               : 'christmas'
 
@@ -1737,6 +1881,20 @@ export const momentAt = (date: Date): Moment => {
     afterChristmas: (month === 12 && day >= 25) || (month === 1 && day === 1),
     newYear: (month === 12 && day === 31) || (month === 1 && day === 1),
   }
+}
+
+// A banner hangs below the ceiling on New Year's Eve, New Year's Day and
+// Thanksgiving Day.
+const banners = (moment: Moment) => {
+  const [text, flags]: [string | undefined, string[]] = moment.newYear
+    ? ['HAPPY NEW YEAR', ['R', 'P', 'Q', 'U']]
+    : moment.season === 'thanksgiving'
+      ? ['GIVE THANKS', ['o', 't', 'Q', 'R']]
+      : [undefined, []]
+
+  return text === undefined
+    ? ''
+    : `<svg y="150" width="100%" height="66" viewBox="0 0 ${text.length * 8 + 8} 11" preserveAspectRatio="xMaxYMin meet">${banner(text, flags)}</svg>`
 }
 
 // The room is laid out three ways, chosen by the shape of the scene's box.
@@ -1841,6 +1999,6 @@ export const scene = (moment: Moment) => {
 <rect width="100%" height="100%" fill="url(#dim)"/>
 <svg width="100%" height="90" viewBox="0 0 800 15" preserveAspectRatio="xMinYMin slice">${CEILING}</svg>
 <svg y="84" width="100%" height="84" viewBox="0 0 400 14" preserveAspectRatio="xMinYMin slice">${dress.ceiling}</svg>
-${moment.newYear ? `<svg y="150" width="100%" height="66" viewBox="0 0 120 11" preserveAspectRatio="xMaxYMin meet">${BANNER}</svg>` : ''}
+${banners(moment)}
 </svg>`
 }

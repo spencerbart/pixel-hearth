@@ -36,6 +36,10 @@ const ALT: Record<Season, string> = {
     "A pixel-art living room in spring: a fire with tulips and a bird's nest on the mantel and ivy trailing from it, a rocking chair and a sleeping cat, an umbrella, rain boots and a potted plant, and trees in blossom through the window",
   summer:
     'A pixel-art living room in summer: a fire with a model sailboat on the mantel and a straw hat hung below it, a rocking chair and a sleeping cat, a fishing rod, a beach ball and a picnic basket, paper lanterns, and sunflowers through the window',
+  'fourth-of-july':
+    'A pixel-art living room on the Fourth of July: a fire with red, white and blue bunting below the mantel and a flag on it, a rocking chair and a sleeping cat, a fishing rod, a beach ball and a picnic basket, and a flag in the yard by day and fireworks at night through the window',
+  thanksgiving:
+    'A pixel-art living room on Thanksgiving Day: a fire with a horn of plenty on the mantel and a roast turkey on the hearth, a rocking chair and a sleeping cat, corn stalks and a hay bale, a Give Thanks banner, and autumn trees through the window',
   halloween:
     "A pixel-art living room at Halloween: a fire with jack-o'-lanterns on the mantel, a cobweb and a spider hanging below it, a rocking chair and a sleeping cat, a broom and a jack-o'-lantern in a witch's hat, paper bats overhead, and bare trees and a pumpkin patch through the window",
   autumn:
