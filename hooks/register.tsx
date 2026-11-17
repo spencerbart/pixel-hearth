@@ -32,6 +32,12 @@ const LOOK: ThemeSetArgs = {
 }
 
 const ALT: Record<Season, string> = {
+  valentines:
+    "A pixel-art living room on Valentine's Day: a fire with hearts hung from the mantel, roses and a box of chocolates on it, a rocking chair and a sleeping cat, a coat rack with ice skates and snow boots, a string of hearts overhead, and paper hearts on a snowy window",
+  'st-patricks':
+    "A pixel-art living room on St. Patrick's Day: a fire with shamrocks hung from the mantel and a green hat on it, a pot of gold on the hearth, a rocking chair and a sleeping cat, green and gold bunting overhead, and a rainbow over the snow through the window",
+  easter:
+    'A pixel-art living room on Easter: a fire with tulips and a chocolate bunny on the mantel, a basket of painted eggs on the hearth, a rocking chair and a sleeping cat, painted eggs strung overhead, and eggs hidden in the grass under trees in blossom through the window',
   spring:
     "A pixel-art living room in spring: a fire with tulips and a bird's nest on the mantel and ivy trailing from it, a rocking chair and a sleeping cat, an umbrella, rain boots and a potted plant, and trees in blossom through the window",
   summer:

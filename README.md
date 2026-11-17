@@ -27,11 +27,16 @@ it is winter: mittens dry on the mantel, a coat rack, ice skates and snow boots
 stand where the tree was, paper snowflakes hang from the ceiling, and the snow
 stays outside.
 
-Two days get a room of their own. On the Fourth of July the summer room is
-dressed in red, white and blue, with bunting below the mantel, a flag on it, a
-flag in the yard by day and fireworks at night. On Thanksgiving Day the autumn
-room has a horn of plenty on the mantel, a roast turkey on the hearth and a
-Give Thanks banner.
+Some days get a room of their own. On Valentine's Day the winter room has
+hearts hung from the mantel, roses and chocolates on it, and paper hearts on
+the window. On St. Patrick's Day it turns green and gold, with shamrocks, a
+green hat, a pot of gold by the fire and a rainbow over the snow by day. On
+Easter the spring room has a chocolate bunny on the mantel, a basket of painted
+eggs by the fire, painted eggs strung overhead and eggs hidden in the grass
+outside. On the Fourth of July the summer room is dressed in red, white and
+blue, with bunting below the mantel, a flag on it, a flag in the yard by day
+and fireworks at night. On Thanksgiving Day the autumn room has a horn of plenty
+on the mantel, a roast turkey on the hearth and a Give Thanks banner.
 
 The sky follows the time of day. The room is drawn when a session starts, so it
 picks up the date and time then.

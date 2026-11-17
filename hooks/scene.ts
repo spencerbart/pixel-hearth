@@ -1646,6 +1646,112 @@ const ROSETTE = pixels(
   PANES_BOTTOM / 2 - 3,
 )
 
+// Valentine's Day: hearts on threads hung from the mantel, a vase of red roses
+// and an open box of chocolates on it, paper hearts on the glass, a big paper
+// heart on the crossbar and a string of hearts overhead.
+const hangingHeart = (c: string) => ['..q..', '..q..', `${c}${c}.${c}${c}`, c.repeat(5), `.${c.repeat(3)}.`, `..${c}..`]
+
+const VALENTINE_MANTEL = `${pixels(
+  ['.R.R.R.', 'RRgRRgR', '.RgRgR.', '..ggg..', '...g...', '..UUU..', '..U4U..', '..UUU..', '..UUU..'],
+  11,
+  -9,
+)}${pixels(['.RR.RR..', 'RRRRRRR.', 'RdkdkdR.', 'RkdkdkR.', '.RdkdR..', '..RRR...'], 21, -6)}`
+
+const PAPER_HEARTS = `${pixels(['.q...', '33.33', '33333', '.333.', '..3..'], 4, 4)}${pixels(['...q.', 'RR.RR', 'RRRRR', '.RRR.', '..R..'], 10, 9)}`
+
+const PAPER_HEART = pixels(
+  ['.RR.RR.', 'RRRRRRR', 'RRwRRRR', '.RRRRR.', '..RRR..', '...R...'],
+  WINDOW_W / 2 - 4,
+  PANES_BOTTOM / 2 - 2,
+)
+
+const HEART_STRING = strung('#b39c7c', 4, 8, (x, i, y) => {
+  const c = ['R', '3', '2'][i % 3] ?? 'R'
+
+  return pixels([`${c}${c}.${c}${c}`, c.repeat(5), `.${c.repeat(3)}.`, `..${c}..`], x - 2, y + 1)
+})
+
+// St. Patrick's Day: shamrocks hung from the mantel, a green hat with a gold
+// buckle and a potted shamrock on it, a pot of gold on the hearth, and a
+// rainbow over the snow by day.
+const SHAMROCK = ['..ggg..', '..ggg..', 'gg.g.gg', 'ggggggg', 'gg.G.gg', '...G...', '....G..']
+
+const hangingShamrock = ['...q...', '...q...', ...SHAMROCK.slice(0, 5)]
+
+const ST_PATRICKS_MANTEL = `${pixels(['.1.1', '1g1.', '.g..', '9999', '.90.'], 0, -5)}${pixels(
+  ['..PPPPP..', '..PPPPP..', '..PPPPP..', '..GQQQG..', '..GQkQG..', 'PPPPPPPPP'],
+  12,
+  -6,
+)}`
+
+const POT_OF_GOLD = pixels(['.Y.Q.Y.Q.', 'QYQQYQYQY', 'KKKKKKKKK', '.KKKKKKK.', 'KKKKKKKKK', '.KKKKKKK.', '..K...K..'], 30, 23)
+
+const RAINBOW = ['#c8443a', '#f28a2a', '#ffd35a', '#4f9a5c', '#3b6ea8', '#7e4f9c']
+  .map((color, i) => `<circle cx="20" cy="44" r="${22 - i}" fill="none" stroke="${color}" stroke-width="1" opacity=".85"/>`)
+  .join('')
+
+const stPatricksView = (daytime: boolean) => `
+    ${daytime ? RAINBOW : ''}
+    ${snowyView(false)(daytime)}`
+
+const PAPER_SHAMROCK = pixels(['...q...', ...SHAMROCK], 4, 4)
+
+const SHAMROCK_WREATH = pixels(
+  ['..gGg..', '.GR.GG.', 'gG...Gg', 'G.....G', 'gG...Rg', '.GG.GG.', '..RwR..'].map(row =>
+    row.replace(/[gGRw]/g, c => ({ g: 'g', G: 'G', R: 'Q', w: 'Y' })[c] ?? c),
+  ),
+  WINDOW_W / 2 - 4,
+  PANES_BOTTOM / 2 - 2,
+)
+
+// Easter: a chocolate bunny with a red bow on the mantel beside the tulips, a
+// basket of painted eggs on the hearth, eggs hidden in the grass outside, a
+// striped paper egg on the glass and painted eggs strung overhead.
+const EASTER_MANTEL = `${pixels(
+  [
+    '...Y.Y...',
+    '3.3YYY2.2',
+    '333YYY222',
+    '333.g.222',
+    '.g..g..g.',
+    '..g.g.g..',
+    '..UUUUU..',
+    '..U4UUU..',
+    '..U4UUU..',
+    '...UUU...',
+  ],
+  11,
+  -10,
+)}${pixels(['.D.D..', '.D.D..', '.DDD..', 'DwDD..', 'DDDDD.', 'RQRDD.', 'DDDDDD', 'DDDDDD', '.dddd.'], 22, -9)}`
+
+const EGG_BASKET = pixels(
+  ['...DDDD...', '..D....D..', '.D.33.YYD.', '.D433vYY1.', 'zzzzzzzzzz', 'zDzzDzzDzz', '.zzzzzzzz.', '..dddddd..'],
+  29,
+  22,
+)
+
+const HIDDEN_EGGS = ([
+  [3, '3'],
+  [10, '4'],
+  [17, 'Y'],
+  [27, 'v'],
+  [33, '2'],
+] as [number, string][])
+  .map(([x, c]) => pixels([c, c], 2 + x, PANES_BOTTOM - 3))
+  .join('')
+
+const easterView = (daytime: boolean) => `
+    ${springView(daytime)}
+    ${HIDDEN_EGGS}`
+
+const PAPER_EGG = pixels(['..q..', '.333.', '33333', 'YYYYY', '44444', '.333.'], 4, 4)
+
+const EGG_STRING = strung('#b39c7c', 4, 8, (x, i, y) => {
+  const c = ['3', '4', 'Y', 'v', '1'][i % 5] ?? '3'
+
+  return pixels([`.${c}.`, `${c}w${c}`, `${c}${c}${c}`, `.${c}.`], x - 1, y + 1)
+})
+
 // What a season puts in each spot of the room. Everything else, the walls,
 // floor, ceiling, fireplace, clock, window frame and furniture, stays all year.
 type Dress = {
@@ -1794,8 +1900,56 @@ const FOURTH_OF_JULY: Dress = {
   ceiling: bunting(['R', 'w', 'U']),
 }
 
+// Valentine's Day is the winter room with hearts and roses.
+const VALENTINES: Dress = {
+  ...WINTER,
+  garland: x => (x % 4 < 2 ? 'R' : '3'),
+  hung: [
+    [hangingHeart('R'), 3],
+    [hangingHeart('3'), 11],
+    [hangingHeart('3'), 25],
+    [hangingHeart('R'), 33],
+  ],
+  mantel: VALENTINE_MANTEL,
+  onGlass: PAPER_HEARTS,
+  wreath: PAPER_HEART,
+  ceiling: HEART_STRING,
+}
+
+// St. Patrick's Day is the winter room in green and gold.
+const ST_PATRICKS: Dress = {
+  ...WINTER,
+  garland: x => (x % 5 === 2 ? 'Q' : x % 2 ? 'g' : 'G'),
+  hung: [
+    [hangingShamrock, 2],
+    [hangingShamrock, 31],
+  ],
+  mantel: ST_PATRICKS_MANTEL,
+  hearthside: POT_OF_GOLD,
+  view: stPatricksView,
+  onGlass: PAPER_SHAMROCK,
+  wreath: SHAMROCK_WREATH,
+  ceiling: bunting(['g', '1', 'Q']),
+}
+
+// Easter is the spring room with eggs everywhere.
+const EASTER: Dress = {
+  ...SPRING,
+  mantel: EASTER_MANTEL,
+  hearthside: EGG_BASKET,
+  view: easterView,
+  onGlass: PAPER_EGG,
+  ceiling: EGG_STRING,
+}
+
 const dressFor = (moment: Moment): Dress => {
   switch (moment.season) {
+    case 'valentines':
+      return VALENTINES
+    case 'st-patricks':
+      return ST_PATRICKS
+    case 'easter':
+      return EASTER
     case 'thanksgiving':
       return THANKSGIVING
     case 'fourth-of-july':
@@ -1828,12 +1982,16 @@ export type Moment = {
   // again from November 1 through Thanksgiving, with pumpkins, leaves and a
   // pie. October is Halloween. Christmas starts the day after Thanksgiving and
   // runs through New Year's Day. Winter runs from January 2 to March 19, with
-  // snow outside and nothing of Christmas left. Thanksgiving Day and the
-  // Fourth of July each have a room of their own for the day.
+  // snow outside and nothing of Christmas left. Valentine's Day, St.
+  // Patrick's Day, Easter, the Fourth of July and Thanksgiving Day each have
+  // a room of their own for the day.
   season: Season
 }
 
 export type Season =
+  | 'valentines'
+  | 'st-patricks'
+  | 'easter'
   | 'spring'
   | 'fourth-of-july'
   | 'summer'
@@ -1842,6 +2000,27 @@ export type Season =
   | 'thanksgiving'
   | 'christmas'
   | 'winter'
+
+// Easter Sunday as a month and day, so April 5 is 405, by the Gregorian
+// computus.
+const easterDate = (year: number) => {
+  const a = year % 19
+  const b = Math.floor(year / 100)
+  const c = year % 100
+  const d = Math.floor(b / 4)
+  const e = b % 4
+  const f = Math.floor((b + 8) / 25)
+  const g = Math.floor((b - f + 1) / 3)
+  const h = (19 * a + b - d - g + 15) % 30
+  const i = Math.floor(c / 4)
+  const k = c % 4
+  const l = (32 + 2 * e + 2 * i - h - k) % 7
+  const m = Math.floor((a + 11 * h + 22 * l) / 451)
+  const month = Math.floor((h + l - 7 * m + 114) / 31)
+  const day = ((h + l - 7 * m + 114) % 31) + 1
+
+  return month * 100 + day
+}
 
 // Thanksgiving is the fourth Thursday of November.
 const thanksgivingDay = (year: number) => {
@@ -1857,23 +2036,35 @@ export const momentAt = (date: Date): Moment => {
 
   // The date as a number, so March 20 is 320.
   const md = month * 100 + day
-  const thanksgiving = 1100 + thanksgivingDay(date.getFullYear())
-  const season: Season =
-    md === thanksgiving
-      ? 'thanksgiving'
-      : md === 704
-        ? 'fourth-of-july'
-        : md >= 102 && md <= 319
-      ? 'winter'
-      : md >= 320 && md <= 620
-        ? 'spring'
-        : md >= 621 && md <= 921
-          ? 'summer'
-          : month === 10
-            ? 'halloween'
-            : md >= 922 && md < thanksgiving
-              ? 'autumn'
-              : 'christmas'
+  const year = date.getFullYear()
+  const thanksgiving = 1100 + thanksgivingDay(year)
+  const holidays: Record<number, Season> = {
+    214: 'valentines',
+    317: 'st-patricks',
+    [easterDate(year)]: 'easter',
+    704: 'fourth-of-july',
+    [thanksgiving]: 'thanksgiving',
+  }
+  const seasonOf = (): Season => {
+    if (md >= 102 && md <= 319) {
+      return 'winter'
+    }
+    if (md >= 320 && md <= 620) {
+      return 'spring'
+    }
+    if (md >= 621 && md <= 921) {
+      return 'summer'
+    }
+    if (month === 10) {
+      return 'halloween'
+    }
+    if (md >= 922 && md < thanksgiving) {
+      return 'autumn'
+    }
+
+    return 'christmas'
+  }
+  const season = holidays[md] ?? seasonOf()
 
   return {
     season,
