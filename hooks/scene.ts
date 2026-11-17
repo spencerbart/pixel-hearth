@@ -1364,6 +1364,184 @@ const SUMMER_CORNER = (() => {
   return g.rows()
 })()
 
+// Carved jack-o'-lanterns, lit from inside, each with a warm glow behind it.
+const JACK = ['....xx....', '.ootootoo.', 'ooYYooYYoo', 'oooYooYooo', 'oooooooooo', 'oYYYYYYYYo', '.oYoYYoYo.', '..oooooo..']
+const SMALL_JACK = ['..x...', '.otto.', 'oYooYo', 'oYYYYo', '.otto.']
+const glowing = (rows: string[], x: number, y: number) => {
+  const w = rows[0]?.length ?? 0
+
+  return `<circle cx="${x + w / 2}" cy="${y + rows.length / 2}" r="${w * 0.6}" fill="url(#warm)"/>${pixels(rows, x, y)}`
+}
+
+// A line of pixels from one point to another.
+const line = (g: ReturnType<typeof grid>, x0: number, y0: number, x1: number, y1: number, c: string) => {
+  const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1)
+
+  for (let s = 0; s <= steps; s++) {
+    g.set(Math.round(x0 + ((x1 - x0) * s) / steps), Math.round(y0 + ((y1 - y0) * s) / steps), c)
+  }
+}
+
+// A cobweb in the corner under the mantel, 8 by 8: threads fanning out from
+// the corner, crossed by two dotted arcs.
+const COBWEB = (() => {
+  const g = grid(8, 8)
+
+  for (const a of [0, 45, 90]) {
+    const r = (a * Math.PI) / 180
+
+    line(g, 0, 0, Math.round(7 * Math.cos(r)), Math.round(7 * Math.sin(r)), 'Z')
+  }
+  for (const radius of [3, 6]) {
+    for (let a = 0; a <= 90; a += 15) {
+      const r = (a * Math.PI) / 180
+
+      g.set(Math.round(radius * Math.cos(r)), Math.round(radius * Math.sin(r)), 'Z')
+    }
+  }
+
+  return g.rows()
+})()
+
+// A spider let down from the mantel on its thread.
+const SPIDER = ['..Z..', '..Z..', '..Z..', '..Z..', '..Z..', 'K.K.K', '.KKK.', 'KKKKK', '.K.K.']
+
+// On the mantel at Halloween: a bowl of candy corn and two jack-o'-lanterns.
+const HALLOWEEN_MANTEL = `${pixels(['.o.Y.', 'oYwoY', 'VVVVV', '.VVV.'], 0, -4)}${glowing(JACK, 12, -8)}${glowing(SMALL_JACK, 23, -5)}`
+
+// A pumpkin pail full of candy on the hearth.
+const CANDY_PAIL = pixels(['...KK...', '.K....K.', '.RYwVoQ.', 'oooooooo', 'okkookko', 'oooooooo', 'okkkkkko', '.oooooo.'], 30, 22)
+
+// Bare trees with gnarled branches and a last few leaves, the width of the
+// panes and 28 tall.
+const bareTrees = (ink: string) => {
+  const g = grid(PANES_W, 28)
+
+  for (let y = 8; y < 28; y++) {
+    g.set(6, y, ink)
+    g.set(7, y, ink)
+  }
+  for (let y = 12; y < 28; y++) {
+    g.set(29, y, ink)
+    g.set(30, y, ink)
+  }
+  for (const [x0, y0, x1, y1] of [
+    [6, 16, 1, 9],
+    [3, 12, 2, 6],
+    [7, 13, 13, 6],
+    [11, 8, 14, 4],
+    [6, 9, 4, 2],
+    [7, 10, 9, 1],
+    [29, 19, 23, 12],
+    [25, 14, 22, 8],
+    [30, 16, 35, 10],
+    [33, 12, 35, 6],
+    [29, 13, 27, 6],
+    [30, 13, 32, 5],
+    [5, 27, 4, 27],
+    [8, 27, 9, 27],
+    [28, 27, 27, 27],
+  ] as [number, number, number, number][]) {
+    line(g, x0, y0, x1, y1, ink)
+  }
+  for (const [x, y, c] of [
+    [2, 6, 'o'],
+    [14, 5, 't'],
+    [22, 9, 'o'],
+    [35, 7, 't'],
+    [1, 10, 't'],
+  ] as [number, number, string][]) {
+    g.set(x, y, c)
+  }
+
+  return g.rows()
+}
+
+// Bats across the moon at night, and crows by day.
+const BATS = `${pixels(['K...K', 'KK.KK', '.KKK.'], 27, 6)}${pixels(['K.K', '.K.'], 14, 9)}${pixels(['K.K', '.K.'], 21, 14)}`
+const CROWS = `${pixels(['k...k', '.k.k.', '..k..'], 22, 12)}${pixels(['k.k', '.k.'], 14, 8)}`
+
+// The Halloween view: bare trees over a pumpkin patch. At night bats cross the
+// moon and a jack-o'-lantern glows in the patch.
+const halloweenView = (daytime: boolean) => `
+    ${daytime ? CROWS : BATS}
+    ${pixels(bareTrees(daytime ? 'k' : 'K'), 2, PANES_BOTTOM - 28)}
+    ${pixels(ground(daytime ? 'x' : 'J', daytime ? ['t', 'o'] : ['k']), 2, PANES_BOTTOM - 3)}
+    ${pixels(SMALL_PUMPKIN, 21, PANES_BOTTOM - 5)}
+    ${daytime ? pixels(SMALL_PUMPKIN, 12, PANES_BOTTOM - 4) : glowing(SMALL_JACK, 12, PANES_BOTTOM - 5)}`
+
+// A paper ghost taped to the glass.
+const PAPER_GHOST = pixels(['..q..', '.www.', 'wkwkw', 'wwwww', 'wwkww', 'wwwww', 'w.w.w'], 4, 4)
+
+// A twig wreath with orange berries and a purple bow.
+const TWIG_WREATH = pixels(
+  ['..gGg..', '.GR.GG.', 'gG...Gg', 'G.....G', 'gG...Rg', '.GG.GG.', '..RwR..'].map(row =>
+    row.replace(/[gGRw]/g, c => ({ g: 'W', G: 'l', R: 'o', w: 'V' })[c] ?? c),
+  ),
+  WINDOW_W / 2 - 4,
+  PANES_BOTTOM / 2 - 2,
+)
+
+// The Halloween corner, in the same 46 by 44: a broom leaning on the wall, a
+// small jack-o'-lantern on the floor, and a big one on a hay bale wearing a
+// witch's hat. The lanterns are added over this with their glow.
+const HALLOWEEN_CORNER = (() => {
+  const g = grid(46, 44)
+
+  // The broom: a handle down to a bound fan of straw.
+  line(g, 14, 3, 7, 32, 'L')
+  line(g, 15, 3, 8, 32, 'l')
+  for (let y = 32; y < 44; y++) {
+    const half = 1 + Math.floor((y - 32) / 2)
+
+    for (let x = 7 - half; x <= 8 + half; x++) {
+      g.set(x, y, y === 33 || y === 34 ? 'R' : (x + y) % 3 === 0 ? 'I' : 'z')
+    }
+  }
+
+  // The witch's hat, its tip bent over.
+  put(
+    g,
+    [
+      '........VV..',
+      '.......VV...',
+      '......VVV...',
+      '.....VVVV...',
+      '.....VVVVV..',
+      '....VVVVVV..',
+      '....VVVVVVV.',
+      '...ooooQooo.',
+      '...oooQQooo.',
+      'VVVVVVVVVVVVVV',
+    ],
+    28,
+    18,
+  )
+
+  // The hay bale.
+  for (let y = 36; y < 44; y++) {
+    for (let x = 25; x < 46; x++) {
+      const band = x === 31 || x === 39
+
+      g.set(x, y, band ? 'd' : y === 36 || y === 43 || (x * 3 + y * 2) % 7 === 0 ? 'D' : 'z')
+    }
+  }
+
+  return g.rows()
+})()
+
+// Paper bats and orange lights on a dark cord.
+const HALLOWEEN_STRING = strung('#1f1410', 4, 4, (x, i, y) => {
+  if (i % 4 === 3) {
+    return ''
+  }
+  if (i % 4 === 1) {
+    return pixels(['v.....v', 'vv.v.vv', '.vvvvv.', '..v.v..'], x - 3, y + 1)
+  }
+
+  return `<circle cx="${x + 0.5}" cy="${y + 3.5}" r="4" fill="url(#warm)"/><rect x="${x - 0.5}" y="${y + 1}" width="2" height="1" fill="#1c1410"/><rect x="${x - 0.5}" y="${y + 2}" width="2" height="3" fill="#f28a2a"/>`
+})
+
 // What a season puts in each spot of the room. Everything else, the walls,
 // floor, ceiling, fireplace, clock, window frame and furniture, stays all year.
 type Dress = {
@@ -1474,8 +1652,26 @@ const SUMMER: Dress = {
   ceiling: LANTERNS,
 }
 
+const HALLOWEEN: Dress = {
+  garland: x => (x % 6 < 3 ? 'o' : x % 6 === 4 ? 'V' : 'K'),
+  hung: [
+    [COBWEB, 0],
+    [SPIDER, 31],
+  ],
+  mantel: HALLOWEEN_MANTEL,
+  hearthside: CANDY_PAIL,
+  view: halloweenView,
+  onGlass: PAPER_GHOST,
+  snowySill: false,
+  wreath: TWIG_WREATH,
+  corner: `${pixels(HALLOWEEN_CORNER)}${glowing(JACK, 30, 28)}${glowing(SMALL_JACK, 16, 39)}`,
+  ceiling: HALLOWEEN_STRING,
+}
+
 const dressFor = (moment: Moment): Dress => {
   switch (moment.season) {
+    case 'halloween':
+      return HALLOWEEN
     case 'spring':
       return SPRING
     case 'summer':
@@ -1498,14 +1694,15 @@ export type Moment = {
   // New Year's Eve and New Year's Day: the banner is up.
   newYear: boolean
   // How the room is dressed. Spring runs from March 20 to June 20, and summer
-  // from June 21 to September 21. Autumn runs from September 22 through
-  // Thanksgiving, with pumpkins, leaves and a pie. Christmas starts the day
-  // after Thanksgiving and runs through New Year's Day. Winter runs from
-  // January 2 to March 19, with snow outside and nothing of Christmas left.
+  // from June 21 to September 21. Autumn runs from September 22 to 30 and
+  // again from November 1 through Thanksgiving, with pumpkins, leaves and a
+  // pie. October is Halloween. Christmas starts the day after Thanksgiving and
+  // runs through New Year's Day. Winter runs from January 2 to March 19, with
+  // snow outside and nothing of Christmas left.
   season: Season
 }
 
-export type Season = 'spring' | 'summer' | 'autumn' | 'christmas' | 'winter'
+export type Season = 'spring' | 'summer' | 'autumn' | 'halloween' | 'christmas' | 'winter'
 
 // Thanksgiving is the fourth Thursday of November.
 const thanksgivingDay = (year: number) => {
@@ -1528,9 +1725,11 @@ export const momentAt = (date: Date): Moment => {
         ? 'spring'
         : md >= 621 && md <= 921
           ? 'summer'
-          : md >= 922 && md <= 1100 + thanksgivingDay(date.getFullYear())
-            ? 'autumn'
-            : 'christmas'
+          : month === 10
+            ? 'halloween'
+            : md >= 922 && md <= 1100 + thanksgivingDay(date.getFullYear())
+              ? 'autumn'
+              : 'christmas'
 
   return {
     season,

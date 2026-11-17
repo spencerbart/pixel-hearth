@@ -12,9 +12,15 @@ of shells on the mantel, a straw hat hung below it, a fishing rod, a beach ball
 and a picnic basket, paper lanterns overhead, and sunflowers outside, with
 fireflies at night.
 
-From September 22 through Thanksgiving it is autumn, with pumpkins on the
-mantel, corn stalks and a hay bale, a pie by the hearth, and autumn trees
-through the window. The day after Thanksgiving it turns to Christmas, with
+October is Halloween: jack-o'-lanterns and a bowl of candy corn on the mantel,
+a cobweb and a spider below it, a pail of candy by the fire, a broom and a
+jack-o'-lantern in a witch's hat in the corner, paper bats and orange lights
+overhead, and bare trees over a pumpkin patch outside, with bats across the
+moon at night.
+
+The rest of autumn, September 22 to 30 and November 1 through Thanksgiving,
+has pumpkins on the mantel, corn stalks and a hay bale, a pie by the hearth,
+and autumn trees through the window. The day after Thanksgiving it turns to Christmas, with
 stockings, a tree with presents, lights, and snow outside. Presents are open
 from Christmas Day, and a banner is up for New Year. From January 2 to March 19
 it is winter: mittens dry on the mantel, a coat rack, ice skates and snow boots
