@@ -1,5 +1,7 @@
 # Pixel Hearth
 
+![The room at Christmas](screenshots/christmas.png)
+
 A cozy dark theme for the Claude desktop and mobile apps. The backdrop is a
 pixel-art living room with a fire, a rocking chair and a sleeping cat. The
 colors are warm browns with candlelight text.
@@ -42,6 +44,20 @@ The sky follows the time of day. The room is drawn when a session starts, so it
 picks up the date and time then.
 
 The terminal and editors don't draw themes, so the mod changes nothing there.
+
+## The rooms
+
+These are the backdrop on its own. In the app, the conversation sits over it
+behind a light veil.
+
+<table>
+<tr><td width="50%"><img src="screenshots/winter.png" alt="Winter, January 2 to March 19"><br>Winter, January 2 to March 19</td><td width="50%"><img src="screenshots/valentines.png" alt="Valentine's Day"><br>Valentine's Day</td></tr>
+<tr><td width="50%"><img src="screenshots/st-patricks.png" alt="St. Patrick's Day"><br>St. Patrick's Day</td><td width="50%"><img src="screenshots/easter.png" alt="Easter"><br>Easter</td></tr>
+<tr><td width="50%"><img src="screenshots/spring.png" alt="Spring, March 20 to June 20"><br>Spring, March 20 to June 20</td><td width="50%"><img src="screenshots/summer.png" alt="Summer, June 21 to September 21"><br>Summer, June 21 to September 21</td></tr>
+<tr><td width="50%"><img src="screenshots/fourth-of-july.png" alt="The Fourth of July, at night"><br>The Fourth of July, at night</td><td width="50%"><img src="screenshots/halloween.png" alt="Halloween, all of October, at night"><br>Halloween, all of October, at night</td></tr>
+<tr><td width="50%"><img src="screenshots/autumn.png" alt="Autumn, late September and November"><br>Autumn, late September and November</td><td width="50%"><img src="screenshots/thanksgiving.png" alt="Thanksgiving Day"><br>Thanksgiving Day</td></tr>
+<tr><td width="50%"><img src="screenshots/christmas.png" alt="Christmas, at night"><br>Christmas, at night</td><td width="50%"><img src="screenshots/new-year.png" alt="New Year's Eve and Day, at night"><br>New Year's Eve and Day, at night</td></tr>
+</table>
 
 ## Install
 
