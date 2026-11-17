@@ -1,1 +1,5 @@
-{ "name": "pixel-hearth", "version": "0.4.0", "description": "Cozy dark theme: a pixel-art living room that follows the season, from Thanksgiving through Christmas and into winter" }
+{
+  "name": "pixel-hearth",
+  "version": "0.5.0",
+  "description": "Cozy dark theme: a pixel-art living room that changes with the seasons, from spring and summer through Thanksgiving, Christmas and winter"
+}

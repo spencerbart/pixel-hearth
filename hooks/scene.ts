@@ -61,6 +61,14 @@ const PALETTE: Record<string, string> = {
   I: '#b8955a', // corn stalk
   i: '#7f6438', // corn stalk in shade
   z: '#c9a256', // hay
+  1: '#79b85a', // fresh leaves, spring and summer grass
+  7: '#a9d46a', // sunlit leaves
+  2: '#f2c4d0', // pale blossom
+  3: '#df86a2', // blossom pink
+  5: '#7d5866', // blossom by moonlight
+  4: '#8cc7e3', // robin's eggs, glass
+  9: '#a85a3a', // clay pot
+  0: '#743a24', // clay pot in shade
 }
 
 // One path per color, with a box for each run of that color along a row. '.' is
@@ -484,12 +492,10 @@ const windowWith = (dress: Dress, daytime: boolean) => `
   ${pixels(windowFrame(dress.snowySill))}
   ${dress.wreath}`
 
-// The autumn view: round trees in reds and golds over grass, with leaves
-// falling past the glass. By night the colors darken under the moon.
-const autumnTrees = (daytime: boolean) => {
+// Round trees seen through the window, the width of the panes and 22 tall. The
+// season picks the colors of the crowns and of the light on their upper right.
+const roundTrees = (tones: string[], lit: string) => {
   const g = grid(PANES_W, 22)
-  const tones = daytime ? ['o', 'R', 'Q', 't', 'o'] : ['t', 'e', 't', 'd', 'e']
-  const lit = daytime ? 'Q' : 'o'
   const tree = (cx: number, cy: number, rx: number, ry: number) => {
     for (let y = cy; y < 22; y++) {
       g.set(cx, y, 'k')
@@ -515,28 +521,40 @@ const autumnTrees = (daytime: boolean) => {
   return g.rows()
 }
 
-const AUTUMN_GROUND = (() => {
+// The autumn view: round trees in reds and golds over grass, with leaves
+// falling past the glass. By night the colors darken under the moon.
+const autumnTrees = (daytime: boolean) =>
+  roundTrees(daytime ? ['o', 'R', 'Q', 't', 'o'] : ['t', 'e', 't', 'd', 'e'], daytime ? 'Q' : 'o')
+
+// Three rows of grass along the bottom of the panes, dotted with what lies in
+// it: fallen leaves or flowers.
+const ground = (grass: string, dots: string[]) => {
   const g = grid(PANES_W, 3)
 
   for (let x = 0; x < PANES_W; x++) {
     if (x % 7 === 2 || x % 11 === 5) {
-      g.set(x, 0, 'x')
+      g.set(x, 0, grass)
     }
-    g.set(x, 1, x % 5 === 1 ? (AUTUMN_LEAVES[x % 4] ?? 'o') : 'x')
-    g.set(x, 2, x % 3 === 0 ? (AUTUMN_LEAVES[(x + 1) % 4] ?? 'o') : 'x')
+    g.set(x, 1, x % 5 === 1 ? (dots[x % dots.length] ?? grass) : grass)
+    g.set(x, 2, x % 3 === 0 ? (dots[(x + 1) % dots.length] ?? grass) : grass)
   }
 
   return g.rows()
-})()
+}
 
-const FALLING_LEAVES = (daytime: boolean) =>
-  Array.from({ length: 16 }, (_, i) => {
+const AUTUMN_GROUND = ground('x', AUTUMN_LEAVES)
+
+// Bits of color drifting down past the glass, fainter at night.
+const drifting = (colors: string[], count: number) => (daytime: boolean) =>
+  Array.from({ length: count }, (_, i) => {
     const x = 3 + ((i * 9 + Math.floor(i / 3)) % (PANES_W - 2))
     const y = 4 + ((i * 13) % (PANES_BOTTOM - 8))
-    const fill = PALETTE[AUTUMN_LEAVES[i % 4] ?? 'o']
+    const fill = PALETTE[colors[i % colors.length] ?? 'o']
 
     return `<rect x="${x}" y="${y}" width="${i % 2 ? 2 : 1}" height="1" fill="${fill}"${daytime ? '' : ' opacity=".6"'}/>`
   }).join('')
+
+const FALLING_LEAVES = drifting(AUTUMN_LEAVES, 16)
 
 // Geese flying south in a V, dark against the day sky and lit by the moon at
 // night.
@@ -994,28 +1012,54 @@ const LIGHTS = (() => {
   return `<path d="${wire}" fill="none" stroke="#1f3a26" stroke-width="1"/>${bulbs}${mistletoe}`
 })()
 
-// In autumn a twine garland hangs in the same sags, strung with leaves.
-const LEAF_GARLAND = (() => {
-  const span = 16
-  const sag = (x: number) => {
-    const t = ((x % span) - span / 2) / (span / 2)
+// The other seasons hang a string in the same sags as the lights, with
+// something tied on every few pixels. The charm gets its x, its count along
+// the string and the height of the string there.
+const sag = (x: number) => {
+  const t = ((x % 16) - 8) / 8
 
-    return 1 + Math.round(3 * (1 - t * t))
-  }
+  return 1 + Math.round(3 * (1 - t * t))
+}
+
+const strung = (string: string, from: number, every: number, charm: (x: number, i: number, y: number) => string) => {
   let wire = ''
-  let leaves = ''
+  let charms = ''
 
   for (let x = 0; x < 400; x++) {
     wire += `${x === 0 ? 'M' : 'L'}${x} ${sag(x) + 0.5}H${x + 1}`
   }
-  for (let x = 2, i = 0; x < 400; x += 4, i++) {
-    const c = AUTUMN_LEAVES[i % 4] ?? 'o'
-
-    leaves += pixels(i % 2 ? [`${c}${c}`, `.${c}`] : [`${c}${c}`, `${c}.`], x, sag(x) + 1)
+  for (let x = from, i = 0; x < 400; x += every, i++) {
+    charms += charm(x, i, sag(x))
   }
 
-  return `<path d="${wire}" fill="none" stroke="#6e4426" stroke-width="1"/>${leaves}`
-})()
+  return `<path d="${wire}" fill="none" stroke="${string}" stroke-width="1"/>${charms}`
+}
+
+// In autumn a twine garland, strung with leaves.
+const LEAF_GARLAND = strung('#6e4426', 2, 4, (x, i, y) => {
+  const c = AUTUMN_LEAVES[i % 4] ?? 'o'
+
+  return pixels(i % 2 ? [`${c}${c}`, `.${c}`] : [`${c}${c}`, `${c}.`], x, y + 1)
+})
+
+// In spring, cloth bunting on a cord: three pennants to each sag, in the
+// colors of the spring flowers and leaves.
+const BUNTING = strung('#b39c7c', 3, 4, (x, i, y) => {
+  if (x % 16 === 15) {
+    return ''
+  }
+  const c = ['3', 'Y', '4', '2', '1'][i % 5] ?? '3'
+
+  return pixels([`${c}${c}${c}`, `${c}${c}${c}`, `.${c}.`], x - 1, y + 1)
+})
+
+// In summer, round paper lanterns, lit, one at the bottom of each sag.
+const LANTERNS = strung('#3a2418', 8, 16, (x, i) => {
+  const c = ['R', 'o', 'Q', '3'][i % 4] ?? 'R'
+  const rows = ['..k..', '.###.', '##Y##', '##Y##', '.###.', '..k..'].map(row => row.replace(/#/g, c))
+
+  return `<circle cx="${x + 0.5}" cy="9.5" r="6" fill="url(#warm)"/>${pixels(rows, x - 2, 5)}`
+})
 
 // A pixel font, 5 rows tall, for the New Year banner.
 const LETTERS: Record<string, string[]> = {
@@ -1057,6 +1101,267 @@ const BANNER = (() => {
   }
 
   return out
+})()
+
+const put = (g: ReturnType<typeof grid>, rows: string[], x0: number, y0: number) =>
+  rows.forEach((row, y) => [...row].forEach((c, x) => c !== '.' && g.set(x0 + x, y0 + y, c)))
+
+// Spring flowers: pink, pale pink, yellow and lilac.
+const SPRING_FLOWERS = ['3', '2', 'Y', 'v']
+
+// Strands of ivy trailing from the mantel, each ending in a blossom.
+const IVY_SHORT = ['G.', 'gG', '.g', '.3']
+const IVY_LONG = ['.G', 'Gg', 'g.', 'gG', '.g', 'G.', '2.']
+
+// On the mantel in spring: a seedling in a clay pot, a glass vase of tulips and
+// a bird's nest with three blue eggs.
+const SPRING_MANTEL = [
+  pixels(['11.1', '.1g1', '..g.', '9999', '.90.'], 0, -5),
+  pixels(
+    [
+      '...Y.Y...',
+      '3.3YYY2.2',
+      '333YYY222',
+      '333.g.222',
+      '.g..g..g.',
+      '..g.g.g..',
+      '..UUUUU..',
+      '..U4UUU..',
+      '..U4UUU..',
+      '...UUU...',
+    ],
+    11,
+    -10,
+  ),
+  pixels(['..4.4...', '.44444..', 'DdDdDdDd', 'dDdDdDdD', '.dDdDdD.'], 21, -5),
+].join('')
+
+// A green watering can on the hearth, its long spout reaching up to a brass
+// rose on the right.
+const WATERING_CAN = pixels(
+  ['..PPP......', '.P...P...QQ', 'PPPPPPP..QQ', 'PgPPPPP.P..', 'PgPPPPPP...', 'PPPPPPP....', 'GGGGGGG....'],
+  29,
+  23,
+)
+
+// Swallows over the blossom by day.
+const SWALLOWS = `${pixels(['k...k', '.k.k.', '..k..'], 19, 12)}${pixels(['k.k', '.k.'], 11, 8)}`
+
+const FALLING_PETALS = drifting(['2', '3'], 12)
+
+// The spring view: trees in blossom over new grass dotted with flowers, petals
+// drifting past and swallows in the day sky.
+const springView = (daytime: boolean) => `
+    ${daytime ? SWALLOWS : ''}
+    ${pixels(roundTrees(daytime ? ['3', '2', '3', '1', '2'] : ['5', 'N', '5', 'n', '5'], daytime ? '2' : 'p'), 2, PANES_BOTTOM - 22)}
+    ${pixels(ground(daytime ? '1' : 'J', daytime ? SPRING_FLOWERS : ['5', 'i']), 2, PANES_BOTTOM - 3)}
+    ${FALLING_PETALS(daytime)}`
+
+// A paper butterfly taped to the glass.
+const PAPER_BUTTERFLY = pixels(['...q...', '33.k.33', '323k323', '.33k33.', '.3.k.3.'], 4, 4)
+
+// A wreath of leaves and flowers on the window's crossbar.
+const SPRING_WREATH = pixels(
+  ['..gGg..', '.GR.GG.', 'gG...Gg', 'G.....G', 'gG...Rg', '.GG.GG.', '..RwR..'].map(row =>
+    row.replace(/[gGRw]/g, c => ({ g: '1', G: 'g', R: '3', w: 'Y' })[c] ?? c),
+  ),
+  WINDOW_W / 2 - 4,
+  PANES_BOTTOM / 2 - 2,
+)
+
+// The spring corner, in the same 46 by 44 as the tree: a furled umbrella in a
+// stoneware stand, yellow rain boots, and a big leafy plant in a clay pot.
+const SPRING_CORNER = (() => {
+  const g = grid(46, 44)
+
+  // The umbrella's hooked handle, its shaft, and the furled canopy.
+  put(g, ['.LL.', 'L..L', 'L..L', '...L'], 4, 4)
+  for (let y = 8; y < 13; y++) {
+    g.set(7, y, 'L')
+  }
+  for (let y = 13; y < 38; y++) {
+    const half = y < 20 ? Math.round((y - 13) / 2.5) : Math.round((37 - y) / 6)
+
+    for (let x = 7 - half; x <= 7 + half; x++) {
+      g.set(x, y, x === 7 + half || (x === 7 - half + 1 && half > 1) ? 'v' : 'V')
+    }
+  }
+  put(g, ['vvvvvvv'], 4, 24)
+
+  // The stand.
+  for (let y = 29; y < 44; y++) {
+    for (let x = 2; x < 13; x++) {
+      g.set(x, y, y === 29 ? 'Z' : y === 32 || y === 40 ? 'S' : x === 12 ? 'S' : 'T')
+    }
+  }
+
+  // A pair of rain boots.
+  const boot = ['YYYY...', 'YQYY...', 'YYYY...', 'YYYY...', 'YYYY...', 'YYYYYY.', 'YYYYYYY', 'QQQQQQQ', 'kkkkkkk']
+
+  put(g, boot, 15, 35)
+  put(g, boot, 23, 35)
+
+  // The plant: stems up from the pot to broad leaves.
+  const leaves: [number, number, number, number][] = [
+    [34, 22, 3, 2],
+    [41, 20, 3, 2],
+    [38, 14, 2, 3],
+    [34, 29, 3, 2],
+    [42, 27, 3, 2],
+    [38, 23, 2, 2],
+  ]
+
+  for (const [lx, ly] of leaves) {
+    const steps = Math.max(Math.abs(lx - 38), Math.abs(ly - 34))
+
+    for (let s = 0; s <= steps; s++) {
+      g.set(Math.round(38 + ((lx - 38) * s) / steps), Math.round(34 + ((ly - 34) * s) / steps), 'G')
+    }
+  }
+  for (const [lx, ly, rx, ry] of leaves) {
+    for (let y = -ry; y <= ry; y++) {
+      for (let x = -rx; x <= rx; x++) {
+        const d = (x * x) / (rx * rx + 0.5) + (y * y) / (ry * ry + 0.5)
+
+        if (d <= 1) {
+          g.set(lx + x, ly + y, d > 0.6 ? 'G' : x < 0 && y < 0 ? '1' : 'g')
+        }
+      }
+    }
+  }
+  for (let y = 34; y < 44; y++) {
+    for (let x = 33; x < 44; x++) {
+      const inset = y > 35 ? Math.floor((y - 35) / 4) : 0
+
+      if (x >= 33 + inset && x <= 43 - inset) {
+        g.set(x, y, y < 36 ? '9' : x >= 41 - inset ? '0' : '9')
+      }
+    }
+  }
+
+  return g.rows()
+})()
+
+// Summer things on the mantel: a starfish, a model sailboat on a stand and a
+// jar of shells.
+const SUMMER_MANTEL = [
+  pixels(['..o..', 'ooooo', '.o.o.'], 0, -3),
+  pixels(
+    ['....R....', '....k....', '...wk....', '..wwk....', '.wwwkw...', 'wwwwkww..', '....k....', 'LLLLLLLLL', '.LlLLlLL.', '...MMM...'],
+    12,
+    -10,
+  ),
+  pixels(['.MMMM.', 'X....X', 'X.w..X', 'X2u3wX', 'Xwu2uX', '.XXXX.'], 23, -6),
+].join('')
+
+// A straw hat hung from the mantel, its ribbon trailing below the brim, and a
+// string of shells.
+const STRAW_HAT = ['....zzz....', '...zzzzz...', '...RRRRR...', 'zzzzzzzzzzz', '.IIIIIIRII.', '.......R...', '......R.R..']
+const SHELL_STRING = ['.d.', 'www', '.w.', '.d.', '222', '.2.', '.d.', 'uuu', '.u.']
+
+// A pitcher of lemonade and a glass on the hearth.
+const LEMONADE = `${pixels(['XXXXX..', 'XYYYXX.', 'XYYYX.X', 'XYwYX.X', 'XYYYXX.', 'XYYYX..', 'XXXXX..'], 29, 23)}${pixels(['X.X', 'XYX', 'XYX', 'XXX'], 37, 26)}`
+
+// Sunflowers standing in front of the trees, the width of the panes and 20 tall.
+const sunflowers = (daytime: boolean) => {
+  const g = grid(PANES_W, 20)
+  const stem = daytime ? 'G' : 'N'
+  const leaf = daytime ? 'g' : 'n'
+  const head = ['.PPP.', 'PPdPP', 'PdddP', 'PPdPP', '.PPP.'].map(row => row.replace(/P/g, daytime ? 'Y' : 'i'))
+  const flower = (x: number, top: number) => {
+    for (let y = top + 5; y < 20; y++) {
+      g.set(x, y, stem)
+    }
+    put(g, [`${leaf}${leaf}.`, `..${leaf}`], x - 2, top + 8)
+    put(g, [`.${leaf}${leaf}`, `${leaf}..`], x, top + 11)
+    put(g, head, x - 2, top)
+  }
+  flower(4, 4)
+  flower(10, 8)
+  flower(32, 6)
+
+  return g.rows()
+}
+
+// Butterflies by day.
+const BUTTERFLIES = `${pixels(['oo.oo', 'ookoo', '.o.o.'], 23, 15)}${pixels(['v.v', 'vkv'], 11, 16)}`
+
+// Fireflies at night, each a speck with a soft glow.
+const FIREFLIES = Array.from({ length: 9 }, (_, i) => {
+  const x = 4 + ((i * 11) % 30)
+  const y = 16 + ((i * 7) % 20)
+
+  return `<circle cx="${x + 0.5}" cy="${y + 0.5}" r="2" fill="url(#firefly)"/><rect x="${x}" y="${y}" width="1" height="1" fill="#e6f57a"/>`
+}).join('')
+
+// The summer view: full green trees with sunflowers in front, butterflies by
+// day and fireflies at night.
+const summerView = (daytime: boolean) => `
+    ${daytime ? BUTTERFLIES : ''}
+    ${pixels(roundTrees(daytime ? ['g', '1', 'G', '1', 'g'] : ['N', 'n', 'J', 'N', 'n'], daytime ? '7' : 'n'), 2, PANES_BOTTOM - 22)}
+    ${pixels(sunflowers(daytime), 2, PANES_BOTTOM - 20)}
+    ${pixels(ground(daytime ? '1' : 'J', daytime ? ['Y', 'w', '3'] : ['i']), 2, PANES_BOTTOM - 3)}
+    ${daytime ? '' : FIREFLIES}`
+
+// A round stained-glass suncatcher stuck to the glass.
+const SUNCATCHER = pixels(['..w..', '..k..', '.QQQ.', 'QR4RQ', 'Q4Y4Q', 'QR4RQ', '.QQQ.'], 6, 4)
+
+// The summer corner, in the same 46 by 44: a fishing rod leaning on the wall
+// with its float hanging from the tip, a tackle box, a beach ball and a picnic
+// basket with a gingham cloth.
+const SUMMER_CORNER = (() => {
+  const g = grid(46, 44)
+
+  for (let y = 3; y < 43; y++) {
+    g.set(Math.round(12 - ((y - 3) * 6) / 40), y, y > 33 ? 'D' : y > 18 ? 'L' : 'M')
+  }
+  put(g, ['XX', 'XZ'], 9, 30)
+  for (let y = 4; y < 12; y++) {
+    g.set(13, y, 'Z')
+  }
+  put(g, ['.R.', 'RRR', 'www', '.w.'], 12, 12)
+  put(
+    g,
+    ['...kkkkk....', '...k...k....', 'PPPPPPPPPPPP', 'PPPPPQQPPPPP', 'PPPPPPPPPPPP', 'GGGGGGGGGGGG', 'GGGGGGGGGGGG'],
+    0,
+    37,
+  )
+
+  // The beach ball, in six stripes round its pole, with a shine.
+  for (let y = 33; y < 44; y++) {
+    for (let x = 17; x < 30; x++) {
+      const dx = x - 23
+      const dy = y - 38
+
+      if (dx * dx + dy * dy <= 30) {
+        const sector = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * 6) % 6
+        const shine = Math.hypot(x - 21, y - 35) < 1.3
+
+        g.set(x, y, shine ? 'w' : (['R', 'w', 'U', 'w', 'Y', 'w'][sector] ?? 'R'))
+      }
+    }
+  }
+
+  // The basket: a handle over a gingham lid and a woven body.
+  for (let y = 26; y < 33; y++) {
+    for (let x = 31; x < 46; x++) {
+      if (Math.abs(Math.hypot(x - 38, y - 33) - 6) < 0.6) {
+        g.set(x, y, 'D')
+      }
+    }
+  }
+  for (let y = 33; y < 36; y++) {
+    for (let x = 30; x < 46; x++) {
+      g.set(x, y, (x % 4 < 2) !== (y % 2 === 0) ? 'R' : 'w')
+    }
+  }
+  for (let y = 36; y < 44; y++) {
+    for (let x = 31; x < 45; x++) {
+      g.set(x, y, y === 36 ? 'D' : y === 43 ? 'd' : (x + y) % 3 === 0 ? 'D' : 'z')
+    }
+  }
+
+  return g.rows()
 })()
 
 // What a season puts in each spot of the room. Everything else, the walls,
@@ -1135,8 +1440,54 @@ const WINTER: Dress = {
   ceiling: SNOWFLAKE_MOBILE,
 }
 
-const dressFor = (moment: Moment): Dress =>
-  moment.season === 'autumn' ? AUTUMN : moment.season === 'winter' ? WINTER : christmasDress(moment.afterChristmas)
+const SPRING: Dress = {
+  garland: x => (x % 6 === 3 ? (SPRING_FLOWERS[Math.floor(x / 6) % 4] ?? '3') : x % 3 === 1 ? 'g' : 'G'),
+  hung: [
+    [IVY_LONG, 3],
+    [IVY_SHORT, 12],
+    [IVY_SHORT, 26],
+    [IVY_LONG, 35],
+  ],
+  mantel: SPRING_MANTEL,
+  hearthside: WATERING_CAN,
+  view: springView,
+  onGlass: PAPER_BUTTERFLY,
+  snowySill: false,
+  wreath: SPRING_WREATH,
+  corner: pixels(SPRING_CORNER),
+  ceiling: BUNTING,
+}
+
+const SUMMER: Dress = {
+  garland: () => 'M',
+  hung: [
+    [STRAW_HAT, 1],
+    [SHELL_STRING, 34],
+  ],
+  mantel: SUMMER_MANTEL,
+  hearthside: LEMONADE,
+  view: summerView,
+  onGlass: SUNCATCHER,
+  snowySill: false,
+  wreath: '',
+  corner: pixels(SUMMER_CORNER),
+  ceiling: LANTERNS,
+}
+
+const dressFor = (moment: Moment): Dress => {
+  switch (moment.season) {
+    case 'spring':
+      return SPRING
+    case 'summer':
+      return SUMMER
+    case 'autumn':
+      return AUTUMN
+    case 'winter':
+      return WINTER
+    case 'christmas':
+      return christmasDress(moment.afterChristmas)
+  }
+}
 
 // What the room shows depends on the local date and time when it is drawn.
 export type Moment = {
@@ -1146,14 +1497,15 @@ export type Moment = {
   afterChristmas: boolean
   // New Year's Eve and New Year's Day: the banner is up.
   newYear: boolean
-  // How the room is dressed. Autumn runs from November 1 through Thanksgiving,
-  // with pumpkins, leaves and a pie. Christmas starts the day after
-  // Thanksgiving and runs through New Year's Day. Winter runs from January 2
-  // to March 19, with snow outside and nothing of Christmas left.
+  // How the room is dressed. Spring runs from March 20 to June 20, and summer
+  // from June 21 to September 21. Autumn runs from September 22 through
+  // Thanksgiving, with pumpkins, leaves and a pie. Christmas starts the day
+  // after Thanksgiving and runs through New Year's Day. Winter runs from
+  // January 2 to March 19, with snow outside and nothing of Christmas left.
   season: Season
 }
 
-export type Season = 'autumn' | 'christmas' | 'winter'
+export type Season = 'spring' | 'summer' | 'autumn' | 'christmas' | 'winter'
 
 // Thanksgiving is the fourth Thursday of November.
 const thanksgivingDay = (year: number) => {
@@ -1167,11 +1519,21 @@ export const momentAt = (date: Date): Moment => {
   const day = date.getDate()
   const hour = date.getHours()
 
-  const autumn = month === 11 && day <= thanksgivingDay(date.getFullYear())
-  const winter = (month === 1 && day >= 2) || month === 2 || (month === 3 && day <= 19)
+  // The date as a number, so March 20 is 320.
+  const md = month * 100 + day
+  const season: Season =
+    md >= 102 && md <= 319
+      ? 'winter'
+      : md >= 320 && md <= 620
+        ? 'spring'
+        : md >= 621 && md <= 921
+          ? 'summer'
+          : md >= 922 && md <= 1100 + thanksgivingDay(date.getFullYear())
+            ? 'autumn'
+            : 'christmas'
 
   return {
-    season: autumn ? 'autumn' : winter ? 'winter' : 'christmas',
+    season,
     daytime: hour >= 7 && hour < 17,
     afterChristmas: (month === 12 && day >= 25) || (month === 1 && day === 1),
     newYear: (month === 12 && day === 31) || (month === 1 && day === 1),
@@ -1216,6 +1578,10 @@ export const scene = (moment: Moment) => {
   <radialGradient id="warm">
     <stop offset="0" stop-color="#ffd35a" stop-opacity=".45"/>
     <stop offset="1" stop-color="#ffb347" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="firefly">
+    <stop offset="0" stop-color="#e6f57a" stop-opacity=".55"/>
+    <stop offset="1" stop-color="#e6f57a" stop-opacity="0"/>
   </radialGradient>
   <radialGradient id="moonlight">
     <stop offset="0" stop-color="#f3e3a1" stop-opacity=".3"/>
